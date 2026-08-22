@@ -4,6 +4,7 @@ import { Heart, ShoppingBag } from 'lucide-react'
 import type { Product } from '../lib/types'
 import { UGX, cx } from '../lib/format'
 import { Stars } from './Stars'
+import { ExpressBadge } from './ExpressBadge'
 import { useCart } from '../store/cart'
 import { useWishlist } from '../store/wishlist'
 
@@ -43,7 +44,8 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
               −{off}%
             </span>
           )}
-          {product.badges.map((b) => (
+          {product.express && <ExpressBadge size="sm" />}
+          {product.badges.filter((b) => b !== 'Express').map((b) => (
             <span
               key={b}
               className="rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text shadow-sm backdrop-blur ring-1 ring-white/15"

@@ -45,6 +45,8 @@ export interface Product {
   colour: string
   featured?: boolean
   bestseller?: boolean
+  /** Eligible for Chikwafu Express fast delivery. */
+  express?: boolean
   description: string
   highlights: string[]
   specs: { label: string; value: string }[]

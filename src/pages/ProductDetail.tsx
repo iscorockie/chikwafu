@@ -8,6 +8,7 @@ import {
 import { getProduct, products } from '../lib/catalog'
 import { UGX, cx } from '../lib/format'
 import { Stars } from '../components/Stars'
+import { ExpressBadge } from '../components/ExpressBadge'
 import { ProductCard } from '../components/ProductCard'
 import { useCart } from '../store/cart'
 import { useWishlist } from '../store/wishlist'
@@ -144,6 +145,16 @@ export default function ProductDetail() {
         </div>
 
         <div>
+          {product.express && (
+            <div className="mb-3">
+              <Link to="/express" className="inline-flex items-center gap-2 transition hover:opacity-80">
+                <ExpressBadge />
+                <span className="text-[12px] text-text-muted underline underline-offset-2">
+                  1 business day in Kampala
+                </span>
+              </Link>
+            </div>
+          )}
           <div className="flex items-center gap-2.5 text-[11.5px] uppercase tracking-[0.18em] text-text-dim">
             <span className="font-semibold text-accent">{product.brand}</span>
             <span className="h-1 w-1 rounded-full bg-bg-2-300" />

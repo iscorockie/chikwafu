@@ -50,6 +50,11 @@ export function Footer() {
         <div>
           <h4 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-text">Support</h4>
           <ul className="mt-5 space-y-2.5 text-[13.5px]">
+            <li>
+              <Link to="/express" className="font-bold text-accent transition hover:text-text">
+                Chikwafu Express
+              </Link>
+            </li>
             {[
               'Delivery & Installation',
               'Warranty Claims',

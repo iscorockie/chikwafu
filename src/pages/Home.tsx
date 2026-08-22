@@ -9,6 +9,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { collections, products } from '../lib/catalog'
+import { ExpressBadge } from '../components/ExpressBadge'
 import { ProductCard } from '../components/ProductCard'
 import { Stars } from '../components/Stars'
 import { UGX } from '../lib/format'
@@ -445,11 +446,40 @@ function Newsletter() {
   )
 }
 
+function ExpressBand() {
+  const count = products.filter((p) => p.express).length
+  return (
+    <section className="container-x py-6">
+      <Link
+        to="/express"
+        className="group relative flex flex-col gap-5 overflow-hidden rounded-[24px] border border-accent/25 bg-card p-7 transition-colors hover:border-accent/50 sm:flex-row sm:items-center sm:justify-between sm:p-9"
+      >
+        <span className="pointer-events-none absolute -right-16 -top-16 h-52 w-52 rounded-full bg-accent/15 blur-3xl" />
+        <div className="relative">
+          <ExpressBadge />
+          <h2 className="mt-3 font-display text-[clamp(1.5rem,3vw,2.1rem)] font-black leading-tight">
+            Chikwafu <span className="text-accent">Express</span> — 1 day in Kampala
+          </h2>
+          <p className="mt-2 max-w-lg text-[13.5px] leading-relaxed text-text-muted">
+            {count} items ship on our fastest routes. Two days across the rest of Central,
+            three to four upcountry. Business days only.
+          </p>
+        </div>
+        <span className="relative inline-flex shrink-0 items-center gap-2 rounded-full bg-accent px-6 py-3 text-sm font-bold text-bg transition-transform group-hover:scale-[1.03]">
+          See Express items
+          <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+        </span>
+      </Link>
+    </section>
+  )
+}
+
 export default function Home() {
   return (
     <>
       <Hero />
       <TrustBar />
+      <ExpressBand />
       <Collections />
       <Featured />
       <Promo />

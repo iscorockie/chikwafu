@@ -8,6 +8,7 @@ import { Logo } from './Logo'
 
 const NAV = [
   { to: '/shop', label: 'Shop All' },
+  { to: '/express', label: 'Express' },
   { to: '/shop?category=Kitchen', label: 'Kitchen' },
   { to: '/shop?category=Cooling', label: 'Cooling' },
   { to: '/shop?category=Home+Entertainment', label: 'Entertainment' },

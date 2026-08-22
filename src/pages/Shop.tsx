@@ -26,6 +26,7 @@ export default function Shop() {
   const maxPrice = Number(params.get('max') ?? priceBounds.max)
   const onlyDeals = params.get('deals') === '1'
   const inStock = params.get('stock') === '1'
+  const expressOnly = params.get('express') === '1'
 
   const [queryDraft, setQueryDraft] = useState(q)
   useEffect(() => setQueryDraft(q), [q])
@@ -55,6 +56,7 @@ export default function Shop() {
       if (minRating && p.rating < minRating) return false
       if (onlyDeals && !p.compareAt) return false
       if (inStock && p.stock <= 0) return false
+      if (expressOnly && !p.express) return false
       if (q) {
         const hay = `${p.name} ${p.brand} ${p.category} ${p.tagline} ${p.description}`.toLowerCase()
         if (!q.toLowerCase().split(/\s+/).every((t) => hay.includes(t))) return false
@@ -73,10 +75,10 @@ export default function Shop() {
         )
     }
     return list
-  }, [category, brand, sort, q, minRating, maxPrice, onlyDeals, inStock])
+  }, [category, brand, sort, q, minRating, maxPrice, onlyDeals, inStock, expressOnly])
 
   const activeCount = [category, brand, q, minRating ? '1' : '', onlyDeals ? '1' : '', inStock ? '1' : '',
-    maxPrice < priceBounds.max ? '1' : ''].filter(Boolean).length
+    expressOnly ? '1' : '', maxPrice < priceBounds.max ? '1' : ''].filter(Boolean).length
 
   const clearAll = () => setParams(sort !== 'featured' ? { sort } : {}, { replace: true })
 
@@ -162,6 +164,7 @@ export default function Shop() {
 
       <div className="space-y-3 border-t border-white/10 pt-6">
         {[
+          { k: 'express', on: expressOnly, l: 'Chikwafu Express only' },
           { k: 'deals', on: onlyDeals, l: 'On offer only' },
           { k: 'stock', on: inStock, l: 'In stock only' },
         ].map((t) => (
