@@ -31,6 +31,11 @@ A full-stack e-commerce platform: a customer-facing shop, an admin dashboard, an
 - Orders (create, my orders, all orders — admin, status update, dashboard stats)
 - Users (admin management, wishlist toggle)
 
+## Deploying
+
+See **[DEPLOY.md](DEPLOY.md)** — MongoDB Atlas + Render, via the `render.yaml`
+blueprint in this repo.
+
 ## Getting Started
 
 ### 1. Prerequisites

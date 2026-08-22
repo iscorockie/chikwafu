@@ -1,0 +1,92 @@
+# Render blueprint — deploys the API plus both front ends.
+#
+#   Render dashboard → New → Blueprint → pick this repo.
+#
+# Set these by hand in the dashboard after the first deploy (they are marked
+# sync:false so they are never committed):
+#   chikwafu-api  MONGO_URI    your Atlas SRV string
+#   chikwafu-api  JWT_SECRET   click Generate
+#
+# The cross-references below wire the URLs together automatically, so CORS
+# and VITE_API_URL do not need editing by hand.
+
+services:
+  # ── REST API ─────────────────────────────────────────────────────────
+  - type: web
+    name: chikwafu-api
+    runtime: node
+    plan: free
+    region: frankfurt          # closest Render region to Uganda
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI
+        sync: false            # paste the Atlas connection string
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_URL
+        fromService:
+          type: web
+          name: chikwafu-shop
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: ADMIN_URL
+        fromService:
+          type: web
+          name: chikwafu-admin
+          envVarKey: RENDER_EXTERNAL_URL
+
+  # ── Customer storefront ──────────────────────────────────────────────
+  - type: web
+    name: chikwafu-shop
+    runtime: static
+    rootDir: shop
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: chikwafu-api
+          envVarKey: RENDER_EXTERNAL_URL
+    routes:
+      - type: rewrite          # SPA: deep links must serve index.html
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+
+  # ── Admin dashboard ──────────────────────────────────────────────────
+  - type: web
+    name: chikwafu-admin
+    runtime: static
+    rootDir: admin
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: chikwafu-api
+          envVarKey: RENDER_EXTERNAL_URL
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable

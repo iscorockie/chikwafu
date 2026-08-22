@@ -16,9 +16,32 @@ connectDB();
 
 const app = express();
 
+/**
+ * Allowed browser origins.
+ *
+ * CLIENT_URL and ADMIN_URL each accept a comma-separated list, so a single
+ * deploy can serve a production domain and a preview URL at once. Requests
+ * without an Origin header (curl, health checks, server-to-server) are
+ * always allowed — CORS only governs browsers.
+ */
+const allowedOrigins = [process.env.CLIENT_URL, process.env.ADMIN_URL]
+  .filter(Boolean)
+  .flatMap((v) => v.split(","))
+  .map((v) => v.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+if (allowedOrigins.length === 0) {
+  allowedOrigins.push("http://localhost:5173", "http://localhost:5174");
+}
+
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL || "http://localhost:5173", process.env.ADMIN_URL || "http://localhost:5174"],
+    origin(origin, cb) {
+      if (!origin) return cb(null, true);
+      const clean = origin.replace(/\/$/, "");
+      if (allowedOrigins.includes(clean)) return cb(null, true);
+      return cb(new Error(`Origin ${origin} is not allowed by CORS`));
+    },
     credentials: true,
   })
 );
@@ -37,4 +60,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Chikwafu API running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Chikwafu API running on port ${PORT}`);
+  console.log(`CORS allows: ${allowedOrigins.join(", ")}`);
+});
