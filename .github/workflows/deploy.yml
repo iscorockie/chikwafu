@@ -1,8 +1,10 @@
 name: Deploy storefront to GitHub Pages
 
+# NOTE: Pages currently publishes from the `main` branch root (legacy mode),
+# so this workflow is manual-only to avoid competing with that builder.
+# To use it instead: Settings -> Pages -> Source -> "GitHub Actions",
+# then re-add the `push` trigger below.
 on:
-  push:
-    branches: [storefront-react]
   workflow_dispatch:
 
 permissions:
