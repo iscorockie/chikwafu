@@ -16,7 +16,12 @@ import { UGX } from '../lib/format'
 const ease = [0.22, 1, 0.36, 1] as const
 
 function Hero() {
-  const hero = products.find((p) => p.slug === 'rwenzori-350l-double-door-fridge')!
+  // Fall back to the first featured product so a catalogue change can never
+  // blank the hero (a hardcoded slug previously did exactly that).
+  const hero =
+    products.find((p) => p.slug === 'hisense-270l-double-door-fridge-dispenser') ??
+    products.find((p) => p.featured) ??
+    products[0]
   return (
     <section className="relative overflow-hidden bg-bg">
       <div className="pointer-events-none absolute -right-40 -top-40 h-[520px] w-[520px] rounded-full bg-accent/12 blur-[120px]" />
@@ -127,7 +132,9 @@ function Hero() {
             </div>
             <div className="mt-2 flex items-baseline gap-2">
               <span className="font-display text-base font-semibold">{UGX(hero.price)}</span>
-              <span className="text-[12px] text-text-dim line-through">{UGX(hero.compareAt!)}</span>
+              {hero.compareAt && (
+                <span className="text-[12px] text-text-dim line-through">{UGX(hero.compareAt)}</span>
+              )}
             </div>
             <Link
               to={`/product/${hero.slug}`}
@@ -275,7 +282,10 @@ function Featured() {
 }
 
 function Promo() {
-  const p = products.find((x) => x.slug === 'kabira-55l-digital-air-fryer')!
+  const p =
+    products.find((x) => x.slug === 'hoffmans-6l-touch-air-fryer') ??
+    products.find((x) => x.category === 'Kitchen') ??
+    products[0]
   return (
     <section className="container-x py-20">
       <div className="relative grid items-center gap-10 overflow-hidden rounded-[28px] border border-white/10 bg-card px-7 py-12 text-text grain sm:px-12 lg:grid-cols-2 lg:py-16">
@@ -302,7 +312,9 @@ function Promo() {
             </Link>
             <div className="flex items-baseline gap-2.5">
               <span className="font-display text-2xl font-semibold">{UGX(p.price)}</span>
-              <span className="text-[13px] text-text-dim line-through">{UGX(p.compareAt!)}</span>
+              {p.compareAt && (
+                <span className="text-[13px] text-text-dim line-through">{UGX(p.compareAt)}</span>
+              )}
             </div>
           </div>
           <p className="mt-6 flex items-center gap-2 text-[12.5px] text-text-muted">
@@ -351,11 +363,12 @@ function Bestsellers() {
 }
 
 function Testimonials() {
-  const picks = [
-    products[4].reviews[0],
-    products[0].reviews[0],
-    products[6].reviews[1],
-  ]
+  // Pick the three highest-rated reviews across the catalogue, resilient to
+  // catalogue changes (no hardcoded indices).
+  const picks = products
+    .flatMap((p) => p.reviews)
+    .filter((r) => r.rating >= 5 && r.body.length > 90)
+    .slice(0, 3)
   return (
     <section className="border-y border-white/10 bg-bg-2 py-20">
       <div className="container-x">
