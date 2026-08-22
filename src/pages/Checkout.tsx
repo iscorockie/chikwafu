@@ -107,14 +107,14 @@ export default function Checkout() {
     props: React.InputHTMLAttributes<HTMLInputElement> = {},
   ) => (
     <div>
-      <label className="mb-1.5 block text-[12.5px] font-medium text-ink-500">{label}</label>
+      <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">{label}</label>
       <input
         value={d[key]}
         onChange={(e) => setD({ ...d, [key]: e.target.value })}
-        className={cx('input', errors[key] && 'border-copper ring-4 ring-copper/10')}
+        className={cx('input', errors[key] && 'border-accent ring-4 ring-accent/10')}
         {...props}
       />
-      {errors[key] && <p className="mt-1 text-[11.5px] text-copper">{errors[key]}</p>}
+      {errors[key] && <p className="mt-1 text-[11.5px] text-accent">{errors[key]}</p>}
     </div>
   )
 
@@ -122,7 +122,7 @@ export default function Checkout() {
     <div className="container-x py-10 lg:py-14">
       <Link
         to="/shop"
-        className="inline-flex items-center gap-2 text-[13px] text-ink-500 transition hover:text-copper"
+        className="inline-flex items-center gap-2 text-[13px] text-text-muted transition hover:text-accent"
       >
         <ArrowLeft size={15} /> Continue shopping
       </Link>
@@ -137,18 +137,18 @@ export default function Checkout() {
             <span
               className={cx(
                 'grid h-8 w-8 shrink-0 place-items-center rounded-full text-[12.5px] font-bold transition-all duration-300',
-                i < step ? 'bg-moss text-white' : i === step ? 'bg-ink text-cream' : 'bg-cream-300 text-ink-300',
+                i < step ? 'bg-accent text-bg' : i === step ? 'bg-bg-2 text-text' : 'bg-bg-3 text-text-dim',
               )}
             >
               {i < step ? <Check size={15} /> : i + 1}
             </span>
-            <span className={cx('text-[13px] font-medium', i <= step ? 'text-ink' : 'text-ink-300')}>
+            <span className={cx('text-[13px] font-medium', i <= step ? 'text-text' : 'text-text-dim')}>
               {s}
             </span>
             {i < STEPS.length - 1 && (
-              <span className="hidden h-px flex-1 bg-ink/12 sm:block">
+              <span className="hidden h-px flex-1 bg-bg-2/12 sm:block">
                 <motion.span
-                  className="block h-full bg-moss"
+                  className="block h-full bg-accent"
                   initial={{ width: 0 }}
                   animate={{ width: i < step ? '100%' : '0%' }}
                   transition={{ duration: 0.4 }}
@@ -170,9 +170,9 @@ export default function Checkout() {
               transition={{ duration: 0.3 }}
             >
               {step === 0 && (
-                <section className="rounded-2xl bg-white p-6 sm:p-8">
+                <section className="rounded-2xl bg-card p-6 sm:p-8">
                   <h2 className="font-display text-xl font-semibold">Where should we deliver?</h2>
-                  <p className="mt-1.5 text-[13px] text-ink-500">
+                  <p className="mt-1.5 text-[13px] text-text-muted">
                     Our rider will call before arriving. Landmarks help more than street names.
                   </p>
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
@@ -182,7 +182,7 @@ export default function Checkout() {
                       {field('email', 'Email (optional)', { placeholder: 'you@example.com', type: 'email', autoComplete: 'email' })}
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-[12.5px] font-medium text-ink-500">District</label>
+                      <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">District</label>
                       <select
                         value={d.region}
                         onChange={(e) => setD({ ...d, region: e.target.value })}
@@ -196,7 +196,7 @@ export default function Checkout() {
                       {field('address', 'Street, plot or landmark', { placeholder: 'Plot 12, off Kigowa Road, near Capital Shoppers' })}
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="mb-1.5 block text-[12.5px] font-medium text-ink-500">
+                      <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">
                         Delivery notes (optional)
                       </label>
                       <textarea
@@ -215,7 +215,7 @@ export default function Checkout() {
               )}
 
               {step === 1 && (
-                <section className="rounded-2xl bg-white p-6 sm:p-8">
+                <section className="rounded-2xl bg-card p-6 sm:p-8">
                   <h2 className="font-display text-xl font-semibold">How would you like to pay?</h2>
                   <div className="mt-6 space-y-3">
                     {PAYMENTS.map((p) => (
@@ -224,8 +224,8 @@ export default function Checkout() {
                         className={cx(
                           'flex cursor-pointer items-center gap-4 rounded-xl border p-4 transition-all duration-200',
                           payment === p.id
-                            ? 'border-copper bg-copper/5 ring-4 ring-copper/8'
-                            : 'border-ink/12 hover:border-ink/30',
+                            ? 'border-accent bg-accent/8 ring-4 ring-accent/8'
+                            : 'border-white/12 hover:border-white/30',
                         )}
                       >
                         <input
@@ -238,22 +238,22 @@ export default function Checkout() {
                         <span
                           className={cx(
                             'grid h-10 w-10 shrink-0 place-items-center rounded-full transition',
-                            payment === p.id ? 'bg-copper text-white' : 'bg-cream-200 text-ink-500',
+                            payment === p.id ? 'bg-accent text-bg' : 'bg-bg-3 text-text-muted',
                           )}
                         >
                           <p.icon size={18} />
                         </span>
                         <span className="flex-1">
                           <span className="block text-[14px] font-semibold">{p.label}</span>
-                          <span className="block text-[12.5px] text-ink-500">{p.sub}</span>
+                          <span className="block text-[12.5px] text-text-muted">{p.sub}</span>
                         </span>
                         <span
                           className={cx(
                             'grid h-5 w-5 place-items-center rounded-full border-2 transition',
-                            payment === p.id ? 'border-copper bg-copper' : 'border-ink/20',
+                            payment === p.id ? 'border-accent bg-accent' : 'border-white/20',
                           )}
                         >
-                          {payment === p.id && <Check size={12} className="text-white" />}
+                          {payment === p.id && <Check size={12} className="text-bg" />}
                         </span>
                       </label>
                     ))}
@@ -268,8 +268,8 @@ export default function Checkout() {
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="mt-5 rounded-xl bg-cream p-5">
-                          <label className="mb-1.5 block text-[12.5px] font-medium text-ink-500">
+                        <div className="mt-5 rounded-xl bg-bg p-5">
+                          <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">
                             {payment === 'mtn' ? 'MTN' : 'Airtel'} number to charge
                           </label>
                           <input
@@ -277,10 +277,10 @@ export default function Checkout() {
                             onChange={(e) => setMomoNumber(e.target.value)}
                             placeholder={payment === 'mtn' ? '0780 000 000' : '0750 000 000'}
                             inputMode="tel"
-                            className={cx('input bg-white', errors.momo && 'border-copper ring-4 ring-copper/10')}
+                            className={cx('input bg-card', errors.momo && 'border-accent ring-4 ring-accent/10')}
                           />
-                          {errors.momo && <p className="mt-1 text-[11.5px] text-copper">{errors.momo}</p>}
-                          <p className="mt-3 text-[12px] leading-relaxed text-ink-500">
+                          {errors.momo && <p className="mt-1 text-[11.5px] text-accent">{errors.momo}</p>}
+                          <p className="mt-3 text-[12px] leading-relaxed text-text-muted">
                             You&apos;ll receive a prompt to enter your PIN. Keep this page open until the
                             payment confirms.
                           </p>
@@ -296,9 +296,9 @@ export default function Checkout() {
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="mt-5 grid gap-4 rounded-xl bg-cream p-5 sm:grid-cols-2">
+                        <div className="mt-5 grid gap-4 rounded-xl bg-bg p-5 sm:grid-cols-2">
                           <div className="sm:col-span-2">
-                            <label className="mb-1.5 block text-[12.5px] font-medium text-ink-500">Card number</label>
+                            <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">Card number</label>
                             <input
                               value={card.number}
                               onChange={(e) =>
@@ -310,12 +310,12 @@ export default function Checkout() {
                               }
                               placeholder="4242 4242 4242 4242"
                               inputMode="numeric"
-                              className={cx('input bg-white', errors.cardNumber && 'border-copper')}
+                              className={cx('input bg-card', errors.cardNumber && 'border-accent')}
                             />
-                            {errors.cardNumber && <p className="mt-1 text-[11.5px] text-copper">{errors.cardNumber}</p>}
+                            {errors.cardNumber && <p className="mt-1 text-[11.5px] text-accent">{errors.cardNumber}</p>}
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-[12.5px] font-medium text-ink-500">Expiry</label>
+                            <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">Expiry</label>
                             <input
                               value={card.exp}
                               onChange={(e) => {
@@ -325,30 +325,30 @@ export default function Checkout() {
                               }}
                               placeholder="09/28"
                               inputMode="numeric"
-                              className={cx('input bg-white', errors.cardExp && 'border-copper')}
+                              className={cx('input bg-card', errors.cardExp && 'border-accent')}
                             />
-                            {errors.cardExp && <p className="mt-1 text-[11.5px] text-copper">{errors.cardExp}</p>}
+                            {errors.cardExp && <p className="mt-1 text-[11.5px] text-accent">{errors.cardExp}</p>}
                           </div>
                           <div>
-                            <label className="mb-1.5 block text-[12.5px] font-medium text-ink-500">CVC</label>
+                            <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">CVC</label>
                             <input
                               value={card.cvc}
                               onChange={(e) => setCard({ ...card, cvc: e.target.value.replace(/\D/g, '').slice(0, 4) })}
                               placeholder="123"
                               inputMode="numeric"
-                              className={cx('input bg-white', errors.cardCvc && 'border-copper')}
+                              className={cx('input bg-card', errors.cardCvc && 'border-accent')}
                             />
-                            {errors.cardCvc && <p className="mt-1 text-[11.5px] text-copper">{errors.cardCvc}</p>}
+                            {errors.cardCvc && <p className="mt-1 text-[11.5px] text-accent">{errors.cardCvc}</p>}
                           </div>
                           <div className="sm:col-span-2">
-                            <label className="mb-1.5 block text-[12.5px] font-medium text-ink-500">Name on card</label>
+                            <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">Name on card</label>
                             <input
                               value={card.name}
                               onChange={(e) => setCard({ ...card, name: e.target.value })}
                               placeholder="S NAMUKASA"
-                              className={cx('input bg-white', errors.cardName && 'border-copper')}
+                              className={cx('input bg-card', errors.cardName && 'border-accent')}
                             />
-                            {errors.cardName && <p className="mt-1 text-[11.5px] text-copper">{errors.cardName}</p>}
+                            {errors.cardName && <p className="mt-1 text-[11.5px] text-accent">{errors.cardName}</p>}
                           </div>
                         </div>
                       </motion.div>
@@ -356,13 +356,13 @@ export default function Checkout() {
                   </AnimatePresence>
 
                   {errors.cod && (
-                    <p className="mt-4 rounded-xl bg-copper/10 px-4 py-3 text-[12.5px] text-copper">
+                    <p className="mt-4 rounded-xl bg-accent/10 px-4 py-3 text-[12.5px] text-accent">
                       {errors.cod}
                     </p>
                   )}
 
-                  <p className="mt-5 flex items-center gap-2 text-[12px] text-ink-500">
-                    <Lock size={13} className="text-moss" />
+                  <p className="mt-5 flex items-center gap-2 text-[12px] text-text-muted">
+                    <Lock size={13} className="text-accent" />
                     This is a demo storefront — no real payment is processed.
                   </p>
 
@@ -377,57 +377,57 @@ export default function Checkout() {
 
               {step === 2 && (
                 <section className="space-y-4">
-                  <div className="rounded-2xl bg-white p-6 sm:p-8">
+                  <div className="rounded-2xl bg-card p-6 sm:p-8">
                     <div className="flex items-start justify-between gap-4">
                       <h2 className="font-display text-xl font-semibold">Delivering to</h2>
                       <button
                         onClick={() => setStep(0)}
-                        className="text-[12.5px] text-copper underline underline-offset-4"
+                        className="text-[12.5px] text-accent underline underline-offset-4"
                       >
                         Edit
                       </button>
                     </div>
-                    <address className="mt-3 text-[13.5px] not-italic leading-relaxed text-ink-500">
-                      <strong className="text-ink">{d.fullName}</strong><br />
+                    <address className="mt-3 text-[13.5px] not-italic leading-relaxed text-text-muted">
+                      <strong className="text-text">{d.fullName}</strong><br />
                       {d.address}<br />
                       {d.town}, {d.region}<br />
                       {d.phone}{d.email && <> · {d.email}</>}
-                      {d.notes && <><br /><span className="text-ink-300">“{d.notes}”</span></>}
+                      {d.notes && <><br /><span className="text-text-dim">“{d.notes}”</span></>}
                     </address>
                   </div>
 
-                  <div className="rounded-2xl bg-white p-6 sm:p-8">
+                  <div className="rounded-2xl bg-card p-6 sm:p-8">
                     <div className="flex items-start justify-between gap-4">
                       <h2 className="font-display text-xl font-semibold">Paying with</h2>
                       <button
                         onClick={() => setStep(1)}
-                        className="text-[12.5px] text-copper underline underline-offset-4"
+                        className="text-[12.5px] text-accent underline underline-offset-4"
                       >
                         Edit
                       </button>
                     </div>
-                    <p className="mt-3 text-[13.5px] text-ink-500">
+                    <p className="mt-3 text-[13.5px] text-text-muted">
                       {PAYMENTS.find((p) => p.id === payment)!.label}
                       {(payment === 'mtn' || payment === 'airtel') && <> · {momoNumber}</>}
                       {payment === 'card' && <> · •••• {card.number.slice(-4)}</>}
                     </p>
                   </div>
 
-                  <div className="rounded-2xl bg-white p-6 sm:p-8">
+                  <div className="rounded-2xl bg-card p-6 sm:p-8">
                     <h2 className="font-display text-xl font-semibold">
                       {count} {count === 1 ? 'item' : 'items'}
                     </h2>
-                    <ul className="mt-4 divide-y divide-ink/8">
+                    <ul className="mt-4 divide-y divide-white/10">
                       {detailed.map((l) => (
                         <li key={l.product.id} className="flex items-center gap-4 py-3.5">
                           <img
                             src={l.product.image}
                             alt=""
-                            className="h-14 w-14 rounded-lg bg-cream-200 object-cover"
+                            className="h-14 w-14 rounded-lg bg-card object-cover"
                           />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-[13.5px] font-medium">{l.product.name}</p>
-                            <p className="text-[12px] text-ink-300">Qty {l.qty}</p>
+                            <p className="text-[12px] text-text-dim">Qty {l.qty}</p>
                           </div>
                           <span className="text-[13.5px] font-semibold tabular-nums">
                             {UGX(l.lineTotal)}
@@ -441,7 +441,7 @@ export default function Checkout() {
                     <button onClick={() => setStep(1)} className="btn-ghost" disabled={placing}>
                       Back
                     </button>
-                    <button onClick={placeOrder} disabled={placing} className="btn-copper flex-1">
+                    <button onClick={placeOrder} disabled={placing} className="btn-primary flex-1">
                       {placing ? (
                         <span className="flex items-center gap-2.5">
                           <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
@@ -461,7 +461,7 @@ export default function Checkout() {
         </div>
 
         <aside className="lg:sticky lg:top-[92px] lg:self-start">
-          <div className="rounded-2xl border border-ink/8 bg-white p-6">
+          <div className="rounded-2xl border border-white/10 bg-card p-6">
             <h2 className="font-display text-lg font-semibold">Order summary</h2>
 
             <ul className="mt-4 space-y-3">
@@ -471,9 +471,9 @@ export default function Checkout() {
                     <img
                       src={l.product.image}
                       alt=""
-                      className="h-12 w-12 rounded-lg bg-cream-200 object-cover"
+                      className="h-12 w-12 rounded-lg bg-card object-cover"
                     />
-                    <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-ink px-1 text-[10.5px] font-bold text-cream">
+                    <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-bg-2 px-1 text-[10.5px] font-bold text-text">
                       {l.qty}
                     </span>
                   </span>
@@ -483,15 +483,15 @@ export default function Checkout() {
               ))}
             </ul>
 
-            <div className="mt-5 border-t border-ink/8 pt-5">
+            <div className="mt-5 border-t border-white/10 pt-5">
               {coupon ? (
-                <div className="flex items-center justify-between rounded-xl bg-moss/8 px-3.5 py-2.5">
-                  <span className="flex items-center gap-2 text-[12.5px] font-medium text-moss">
+                <div className="flex items-center justify-between rounded-xl bg-accent/10 px-3.5 py-2.5">
+                  <span className="flex items-center gap-2 text-[12.5px] font-medium text-accent">
                     <Tag size={14} /> {coupon}
                   </span>
                   <button
                     onClick={() => clearCoupon()}
-                    className="text-[11.5px] text-ink-500 underline underline-offset-2"
+                    className="text-[11.5px] text-text-muted underline underline-offset-2"
                   >
                     Remove
                   </button>
@@ -517,47 +517,47 @@ export default function Checkout() {
                   </button>
                 </form>
               )}
-              {couponError && <p className="mt-1.5 text-[11.5px] text-copper">{couponError}</p>}
+              {couponError && <p className="mt-1.5 text-[11.5px] text-accent">{couponError}</p>}
               {!coupon && (
-                <p className="mt-2 text-[11.5px] text-ink-300">
+                <p className="mt-2 text-[11.5px] text-text-dim">
                   Try <button
                     onClick={() => { applyCoupon('KARIBU10'); setCouponError('') }}
-                    className="font-semibold text-copper underline underline-offset-2"
+                    className="font-semibold text-accent underline underline-offset-2"
                   >KARIBU10</button> for 10% off
                 </p>
               )}
             </div>
 
-            <dl className="mt-5 space-y-2 border-t border-ink/8 pt-5 text-[13.5px]">
+            <dl className="mt-5 space-y-2 border-t border-white/10 pt-5 text-[13.5px]">
               <div className="flex justify-between">
-                <dt className="text-ink-500">Subtotal</dt>
+                <dt className="text-text-muted">Subtotal</dt>
                 <dd className="font-medium tabular-nums">{UGX(subtotal)}</dd>
               </div>
               {discount > 0 && (
-                <div className="flex justify-between text-moss">
+                <div className="flex justify-between text-accent">
                   <dt>Discount ({COUPONS[coupon!].label})</dt>
                   <dd className="font-medium tabular-nums">−{UGX(discount)}</dd>
                 </div>
               )}
               <div className="flex justify-between">
-                <dt className="flex items-center gap-1.5 text-ink-500">
+                <dt className="flex items-center gap-1.5 text-text-muted">
                   <Truck size={14} /> Delivery to {d.region}
                 </dt>
                 <dd className="font-medium tabular-nums">
-                  {delivery === 0 ? <span className="text-moss">Free</span> : UGX(delivery)}
+                  {delivery === 0 ? <span className="text-accent">Free</span> : UGX(delivery)}
                 </dd>
               </div>
             </dl>
 
-            <div className="mt-4 flex items-baseline justify-between border-t border-ink/8 pt-4">
+            <div className="mt-4 flex items-baseline justify-between border-t border-white/10 pt-4">
               <span className="font-display text-base font-semibold">Total</span>
               <span className="font-display text-2xl font-semibold tabular-nums">{UGX(total)}</span>
             </div>
 
-            <ul className="mt-5 space-y-2 border-t border-ink/8 pt-5">
+            <ul className="mt-5 space-y-2 border-t border-white/10 pt-5">
               {['Genuine warranty on every unit', 'Free installation on large appliances', '7-day returns'].map((t) => (
-                <li key={t} className="flex items-center gap-2 text-[12px] text-ink-500">
-                  <BadgeCheck size={13} className="shrink-0 text-moss" /> {t}
+                <li key={t} className="flex items-center gap-2 text-[12px] text-text-muted">
+                  <BadgeCheck size={13} className="shrink-0 text-accent" /> {t}
                 </li>
               ))}
             </ul>
