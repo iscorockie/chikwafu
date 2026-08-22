@@ -36,6 +36,13 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
       default: "pending",
     },
+    /** Original figures kept when a pre-UGX order is recomputed. */
+    legacyPricing: {
+      shippingPrice: Number,
+      taxPrice: Number,
+      totalPrice: Number,
+      migratedAt: Date,
+    },
     isPaid: { type: Boolean, default: false },
     paidAt: Date,
     deliveredAt: Date,

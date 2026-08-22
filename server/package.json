@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node seed.js"
+    "seed": "node seed.js",
+    "migrate:ugx": "node scripts/migrate-ugx.js",
+    "migrate:ugx:apply": "node scripts/migrate-ugx.js --apply"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
