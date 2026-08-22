@@ -43,11 +43,22 @@ A full-stack e-commerce platform: a customer-facing shop, an admin dashboard, an
 cd server
 cp .env.example .env      # edit MONGO_URI / JWT_SECRET if needed
 npm install
-npm run seed               # loads sample categories, products, and an admin user
+npm run seed               # loads the Chikwafu catalogue + an admin user
 npm run dev                 # runs on http://localhost:5000
 ```
 
 Seeded admin login: **admin@chikwafu.com / admin123**
+
+The seed loads the real Chikwafu catalogue — 78 products across 7 categories
+(Kitchen, Laundry, Cooling, Home Entertainment, Small Appliances,
+Phones & Tablets, Computing), priced in UGX.
+
+Product images are served by the shop from `/jumia/*.webp`. If the front end
+is hosted on a different origin, set `ASSET_BASE` before seeding:
+
+```bash
+ASSET_BASE=https://your-shop-host npm run seed
+```
 
 ### 3. Shop (customer site)
 
