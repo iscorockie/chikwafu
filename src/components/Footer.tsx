@@ -14,10 +14,12 @@ export function Footer() {
             across Uganda. Showroom in Ntinda, delivery countrywide.
           </p>
           <div className="mt-6 flex gap-2.5">
-            {SocialIcons.map(({ name, path }) => (
+            {SocialIcons.map(({ name, href, path }) => (
               <a
                 key={name}
-                href="#"
+                href={href}
+                target="_blank"
+                rel="noreferrer noopener"
                 aria-label={name}
                 className="grid h-9 w-9 place-items-center rounded-full border border-cream/15 transition hover:border-copper hover:bg-copper hover:text-white"
               >
@@ -75,8 +77,8 @@ export function Footer() {
             </li>
             <li className="flex gap-3">
               <Phone size={16} className="mt-0.5 shrink-0 text-copper" />
-              <a href="tel:+256772000111" className="transition hover:text-copper-light">
-                0772 000 111
+              <a href="tel:+256780844098" className="transition hover:text-copper-light">
+                0780 844 098
               </a>
             </li>
             <li className="flex gap-3">

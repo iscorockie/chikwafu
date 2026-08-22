@@ -160,8 +160,8 @@ export default function OrderConfirmed() {
 
       <div className="mt-10 flex flex-wrap justify-center gap-3">
         <Link to="/shop" className="btn-primary">Continue shopping</Link>
-        <a href="tel:+256772000111" className="btn-ghost">
-          <Phone size={15} /> Call us on 0772 000 111
+        <a href="tel:+256780844098" className="btn-ghost">
+          <Phone size={15} /> Call us on 0780 844 098
         </a>
       </div>
     </div>

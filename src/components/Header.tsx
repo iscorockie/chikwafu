@@ -103,10 +103,10 @@ export function Header() {
 
           <div className="flex items-center gap-1 lg:w-[220px] lg:justify-end">
             <a
-              href="tel:+256772000111"
-              className="hidden items-center gap-2 rounded-full px-3 py-2 text-[13px] font-medium text-ink-500 transition hover:bg-ink/5 hover:text-ink xl:flex"
+              href="tel:+256780844098"
+              className="hidden items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-[13px] font-medium text-ink-500 transition hover:bg-ink/5 hover:text-ink xl:flex"
             >
-              <Phone size={15} /> 0772 000 111
+              <Phone size={15} className="shrink-0" /> 0780 844 098
             </a>
             <Link
               to="/shop"
@@ -184,8 +184,8 @@ export function Header() {
                   </motion.div>
                 ))}
               </nav>
-              <a href="tel:+256772000111" className="btn-primary mt-8 w-full">
-                <Phone size={16} /> Call 0772 000 111
+              <a href="tel:+256780844098" className="btn-primary mt-8 w-full">
+                <Phone size={16} /> Call 0780 844 098
               </a>
               <p className="mt-6 text-xs leading-relaxed text-ink-500">
                 Chikwafu Appliances<br />Plot 42, Ntinda Road, Kampala<br />Mon–Sat, 8:30am – 7pm

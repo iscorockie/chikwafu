@@ -177,7 +177,7 @@ export default function Checkout() {
                   </p>
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
                     {field('fullName', 'Full name', { placeholder: 'Namukasa Sarah', autoComplete: 'name' })}
-                    {field('phone', 'Phone number', { placeholder: '0772 000 111', inputMode: 'tel', autoComplete: 'tel' })}
+                    {field('phone', 'Phone number', { placeholder: '0780 000 000', inputMode: 'tel', autoComplete: 'tel' })}
                     <div className="sm:col-span-2">
                       {field('email', 'Email (optional)', { placeholder: 'you@example.com', type: 'email', autoComplete: 'email' })}
                     </div>
@@ -275,7 +275,7 @@ export default function Checkout() {
                           <input
                             value={momoNumber}
                             onChange={(e) => setMomoNumber(e.target.value)}
-                            placeholder={payment === 'mtn' ? '0772 000 111' : '0752 000 111'}
+                            placeholder={payment === 'mtn' ? '0780 000 000' : '0750 000 000'}
                             inputMode="tel"
                             className={cx('input bg-white', errors.momo && 'border-copper ring-4 ring-copper/10')}
                           />
