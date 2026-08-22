@@ -2,9 +2,11 @@ import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, Search, Truck, X, Zap } from 'lucide-react'
 import {
-  STATUS_FLOW, STATUS_META, useOrders, type Order, type OrderStatus,
+  STATUS_FLOW, STATUS_META, type Order, type OrderStatus,
 } from '../../store/orders'
+import { useAdminData } from '../../store/adminData'
 import { UGX, cx } from '../../lib/format'
+import { DataSourceNote } from './DataSourceNote'
 
 const PAY_LABEL: Record<string, string> = {
   mtn: 'MTN MoMo', airtel: 'Airtel Money', card: 'Card', cod: 'Cash on delivery',
@@ -15,8 +17,7 @@ const FILTERS: (OrderStatus | 'all')[] = [
 ]
 
 export default function AdminOrders() {
-  const orders = useOrders((s) => s.orders)
-  const setStatus = useOrders((s) => s.setStatus)
+  const { orders, setStatus, source, loading, error, refresh } = useAdminData()
   const [filter, setFilter] = useState<OrderStatus | 'all'>('all')
   const [q, setQ] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -53,6 +54,7 @@ export default function AdminOrders() {
         <p className="mt-2 text-[13.5px] text-text-muted">
           {list.length} of {orders.length} orders. Click a row to see the detail.
         </p>
+        <DataSourceNote source={source} loading={loading} error={error} onRetry={refresh} />
       </header>
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -234,7 +236,7 @@ export default function AdminOrders() {
                                     <div className="mt-3 flex flex-wrap gap-2">
                                       {next && (
                                         <button
-                                          onClick={(e) => { e.stopPropagation(); setStatus(o.ref, next) }}
+                                          onClick={(e) => { e.stopPropagation(); void setStatus(o, next) }}
                                           className="inline-flex items-center gap-2 rounded-full bg-accent px-4 py-2 text-[12.5px] font-black text-bg transition hover:bg-accent-2"
                                         >
                                           <Truck size={14} />
@@ -243,7 +245,7 @@ export default function AdminOrders() {
                                       )}
                                       {o.status !== 'cancelled' && (
                                         <button
-                                          onClick={(e) => { e.stopPropagation(); setStatus(o.ref, 'cancelled') }}
+                                          onClick={(e) => { e.stopPropagation(); void setStatus(o, 'cancelled') }}
                                           className="rounded-full border border-danger/40 px-4 py-2 text-[12.5px] font-bold text-danger transition hover:bg-danger/10"
                                         >
                                           Cancel order
@@ -251,7 +253,7 @@ export default function AdminOrders() {
                                       )}
                                       {o.status === 'cancelled' && (
                                         <button
-                                          onClick={(e) => { e.stopPropagation(); setStatus(o.ref, 'pending') }}
+                                          onClick={(e) => { e.stopPropagation(); void setStatus(o, 'pending') }}
                                           className="rounded-full border border-white/20 px-4 py-2 text-[12.5px] font-bold text-text-muted transition hover:border-white/40 hover:text-text"
                                         >
                                           Reinstate

@@ -4,6 +4,8 @@ export type Category =
   | 'Cooling'
   | 'Home Entertainment'
   | 'Small Appliances'
+  | 'Phones & Tablets'
+  | 'Computing'
 
 export interface Review {
   id: string

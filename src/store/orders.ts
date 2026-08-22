@@ -26,6 +26,8 @@ export interface Order {
   delivery: number
   total: number
   express: boolean
+  /** present when the order came from the Express API */
+  apiId?: string
 }
 
 export const STATUS_FLOW: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered']

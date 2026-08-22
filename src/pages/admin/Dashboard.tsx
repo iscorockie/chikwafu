@@ -4,14 +4,16 @@ import { motion } from 'framer-motion'
 import {
   AlertTriangle, ArrowRight, Banknote, Package, ShoppingCart, TrendingUp, Zap,
 } from 'lucide-react'
-import { useOrders, STATUS_META, type OrderStatus } from '../../store/orders'
+import { STATUS_META, type OrderStatus } from '../../store/orders'
+import { useAdminData } from '../../store/adminData'
+import { DataSourceNote } from './DataSourceNote'
 import { products } from '../../lib/catalog'
 import { UGX, UGXshort, cx } from '../../lib/format'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
 export default function Dashboard() {
-  const orders = useOrders((s) => s.orders)
+  const { orders, source, loading, error, refresh } = useAdminData()
 
   const stats = useMemo(() => {
     const live = orders.filter((o) => o.status !== 'cancelled')
@@ -109,6 +111,7 @@ export default function Dashboard() {
             </>
           )}
         </p>
+        <DataSourceNote source={source} loading={loading} error={error} onRetry={refresh} />
       </header>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

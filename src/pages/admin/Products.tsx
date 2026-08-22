@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpDown, ExternalLink, Search, X, Zap } from 'lucide-react'
 import { CATEGORIES, brands, products } from '../../lib/catalog'
-import { useOrders } from '../../store/orders'
+import { useAdminData } from '../../store/adminData'
 import { UGX, cx } from '../../lib/format'
 
 type SortKey = 'name' | 'price' | 'stock' | 'rating' | 'sold'
 
 export default function AdminProducts() {
-  const orders = useOrders((s) => s.orders)
+  const { orders } = useAdminData()
   const [q, setQ] = useState('')
   const [cat, setCat] = useState('')
   const [brand, setBrand] = useState('')

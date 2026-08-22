@@ -1,29 +1,43 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Eye, EyeOff, Lock, ShieldAlert } from 'lucide-react'
+import { ArrowLeft, Eye, EyeOff, Loader2, Lock, Server, ShieldAlert } from 'lucide-react'
 import { useAuth } from '../../store/auth'
+import { API_ENABLED, API_URL } from '../../lib/api'
 import { Logo } from '../../components/Logo'
 import { cx } from '../../lib/format'
 
 export default function AdminLogin() {
-  const signIn = useAuth((s) => s.signIn)
+  const signInDemo = useAuth((s) => s.signInDemo)
+  const signInApi = useAuth((s) => s.signInApi)
+
+  const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
   const [show, setShow] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [shake, setShake] = useState(0)
-  const ref = useRef<HTMLInputElement>(null)
+  const first = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { ref.current?.focus() }, [])
+  useEffect(() => { first.current?.focus() }, [])
 
-  const submit = (e: React.FormEvent) => {
+  const fail = (msg: string) => {
+    setError(msg)
+    setShake((n) => n + 1)
+    setPass('')
+  }
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const r = signIn(pass)
-    if (!r.ok) {
-      setError(r.error ?? 'Incorrect passcode.')
-      setShake((n) => n + 1)
-      setPass('')
-      ref.current?.focus()
+    setError('')
+    if (API_ENABLED) {
+      setBusy(true)
+      const r = await signInApi(email.trim(), pass)
+      setBusy(false)
+      if (!r.ok) fail(r.error ?? 'Sign in failed.')
+    } else {
+      const r = signInDemo(pass)
+      if (!r.ok) fail(r.error ?? 'Incorrect passcode.')
     }
   }
 
@@ -52,13 +66,31 @@ export default function AdminLogin() {
           </p>
 
           <form onSubmit={submit} className="mt-6">
+            {API_ENABLED && (
+              <div className="mb-4">
+                <label htmlFor="email" className="mb-1.5 block text-[12.5px] font-bold text-text-muted">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  ref={first}
+                  type="email"
+                  value={email}
+                  onChange={(e) => { setEmail(e.target.value); setError('') }}
+                  autoComplete="username"
+                  placeholder="admin@chikwafu.ug"
+                  className={cx('input', error && 'border-danger')}
+                />
+              </div>
+            )}
+
             <label htmlFor="passcode" className="mb-1.5 block text-[12.5px] font-bold text-text-muted">
-              Passcode
+              {API_ENABLED ? 'Password' : 'Passcode'}
             </label>
             <div className="relative">
               <input
                 id="passcode"
-                ref={ref}
+                ref={API_ENABLED ? undefined : first}
                 type={show ? 'text' : 'password'}
                 value={pass}
                 onChange={(e) => { setPass(e.target.value); setError('') }}
@@ -69,7 +101,7 @@ export default function AdminLogin() {
               <button
                 type="button"
                 onClick={() => setShow(!show)}
-                aria-label={show ? 'Hide passcode' : 'Show passcode'}
+                aria-label={show ? 'Hide password' : 'Show password'}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-text-dim transition hover:bg-white/10 hover:text-text"
               >
                 {show ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -83,18 +115,39 @@ export default function AdminLogin() {
               </p>
             )}
 
-            <button type="submit" disabled={!pass} className="btn-primary mt-5 w-full">
-              Sign in
+            <button
+              type="submit"
+              disabled={busy || !pass || (API_ENABLED && !email)}
+              className="btn-primary mt-5 w-full"
+            >
+              {busy ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 size={15} className="animate-spin" /> Signing in…
+                </span>
+              ) : 'Sign in'}
             </button>
           </form>
 
-          <p className="mt-5 rounded-xl border border-white/10 bg-bg-2 px-4 py-3 text-[12px] leading-relaxed text-text-muted">
-            <strong className="text-text">Demo passcode:</strong>{' '}
-            <code className="font-mono text-accent">chikwafu2026</code>
-            <br />
-            This gate runs in the browser, so it deters casual access but is not
-            real security. Move it server-side before handling live orders.
-          </p>
+          {API_ENABLED ? (
+            <p className="mt-5 flex items-start gap-2 rounded-xl border border-accent/25 bg-accent/8 px-4 py-3 text-[12px] leading-relaxed text-text-muted">
+              <Server size={14} className="mt-0.5 shrink-0 text-accent" />
+              <span>
+                Authenticating against{' '}
+                <strong className="text-text">{API_URL.replace(/^https?:\/\//, '')}</strong>.
+                The server verifies your password and admin role on every request.
+              </span>
+            </p>
+          ) : (
+            <p className="mt-5 rounded-xl border border-white/10 bg-bg-2 px-4 py-3 text-[12px] leading-relaxed text-text-muted">
+              <strong className="text-text">Demo passcode:</strong>{' '}
+              <code className="font-mono text-accent">chikwafu2026</code>
+              <br />
+              No API is configured, so this gate runs in the browser. It deters
+              casual access but is not real security — set{' '}
+              <code className="font-mono text-text">VITE_API_URL</code> to
+              authenticate against the server instead.
+            </p>
+          )}
         </div>
 
         <Link
