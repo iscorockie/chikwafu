@@ -1,43 +1,74 @@
 import Order from "../models/Order.js";
 import Product from "../models/Product.js";
+import { priceOrder, isCentral, CURRENCY } from "../config/pricing.js";
 
 export const createOrder = async (req, res) => {
   try {
-    const { items, shippingAddress, paymentMethod } = req.body;
+    const { items, shippingAddress, paymentMethod, couponCode } = req.body;
     if (!items || items.length === 0) return res.status(400).json({ message: "No order items" });
 
+    const region = shippingAddress?.region || shippingAddress?.city || "";
+
+    // Cash on delivery is only offered where our own riders deliver.
+    if (paymentMethod === "cod" && !isCentral(region)) {
+      return res.status(400).json({
+        message: "Cash on delivery is only available in Kampala, Wakiso and Mukono.",
+      });
+    }
+
+    // Resolve every line and check stock BEFORE touching any of it, so a
+    // failure part-way through cannot leave earlier products decremented.
     let itemsPrice = 0;
     const orderItems = [];
+    const toDecrement = [];
+
     for (const it of items) {
+      const qty = Math.max(1, parseInt(it.qty, 10) || 1);
       const product = await Product.findById(it.product);
       if (!product) return res.status(404).json({ message: `Product not found: ${it.product}` });
-      if (product.stock < it.qty) return res.status(400).json({ message: `${product.name} is out of stock` });
-      itemsPrice += product.price * it.qty;
+      if (product.stock < qty) {
+        return res.status(400).json({
+          message: `${product.name} — only ${product.stock} left in stock`,
+        });
+      }
+      // Price is taken from the database, never from the request body.
+      itemsPrice += product.price * qty;
       orderItems.push({
         product: product._id,
         name: product.name,
-        image: product.images[0] || "",
+        image: product.images?.[0] || "",
         price: product.price,
-        qty: it.qty,
+        qty,
       });
-      product.stock -= it.qty;
-      await product.save();
+      toDecrement.push({ product, qty });
     }
 
-    const shippingPrice = itemsPrice > 99 ? 0 : 9.99;
-    const taxPrice = Number((itemsPrice * 0.08).toFixed(2));
-    const totalPrice = Number((itemsPrice + shippingPrice + taxPrice).toFixed(2));
+    // Ugandan pricing: flat delivery by region, free over the threshold,
+    // and 18% VAT extracted from the (VAT-inclusive) total rather than
+    // added on top.
+    const pricing = priceOrder({ itemsPrice, region, couponCode });
 
     const order = await Order.create({
       user: req.user._id,
       items: orderItems,
       shippingAddress,
       paymentMethod,
-      itemsPrice,
-      shippingPrice,
-      taxPrice,
-      totalPrice,
+      currency: CURRENCY,
+      itemsPrice: pricing.itemsPrice,
+      discount: pricing.discount,
+      couponCode: pricing.couponCode,
+      shippingPrice: pricing.shippingPrice,
+      taxPrice: pricing.taxPrice,
+      totalPrice: pricing.totalPrice,
     });
+
+    // Only now commit the stock movement.
+    await Promise.all(
+      toDecrement.map(({ product, qty }) => {
+        product.stock -= qty;
+        return product.save();
+      })
+    );
 
     res.status(201).json(order);
   } catch (err) {
