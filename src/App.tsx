@@ -10,6 +10,10 @@ import ProductDetail from './pages/ProductDetail'
 import Checkout from './pages/Checkout'
 import OrderConfirmed from './pages/OrderConfirmed'
 import NotFound from './pages/NotFound'
+import AdminLayout from './pages/admin/AdminLayout'
+import Dashboard from './pages/admin/Dashboard'
+import AdminOrders from './pages/admin/Orders'
+import AdminProducts from './pages/admin/Products'
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -19,10 +23,9 @@ function ScrollToTop() {
   return null
 }
 
-export default function App() {
+function Storefront() {
   return (
     <div className="flex min-h-screen flex-col">
-      <ScrollToTop />
       <Header />
       <main className="flex-1">
         <Routes>
@@ -38,5 +41,21 @@ export default function App() {
       <Footer />
       <CartDrawer />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<Dashboard />} />
+          <Route path="orders" element={<AdminOrders />} />
+          <Route path="products" element={<AdminProducts />} />
+        </Route>
+        <Route path="*" element={<Storefront />} />
+      </Routes>
+    </>
   )
 }

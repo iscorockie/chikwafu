@@ -5,6 +5,7 @@ import {
   ArrowLeft, BadgeCheck, Check, CreditCard, Lock, Smartphone, Tag, Truck, Wallet,
 } from 'lucide-react'
 import { COUPONS, deliveryFeeFor, useCart, useCartDetails } from '../store/cart'
+import { useOrders } from '../store/orders'
 import { UGX, cx } from '../lib/format'
 import type { DeliveryDetails, PaymentMethod } from '../lib/types'
 
@@ -28,6 +29,7 @@ export default function Checkout() {
   const applyCoupon = useCart((s) => s.applyCoupon)
   const clearCoupon = useCart((s) => s.clearCoupon)
   const clear = useCart((s) => s.clear)
+  const addOrder = useOrders((s) => s.addOrder)
 
   const [step, setStep] = useState(0)
   const [placing, setPlacing] = useState(false)
@@ -88,13 +90,29 @@ export default function Checkout() {
 
   const placeOrder = () => {
     setPlacing(true)
+    const ref = 'CHK-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+    const placedAt = new Date().toISOString()
     const order = {
-      ref: 'CHK-' + Math.random().toString(36).slice(2, 8).toUpperCase(),
+      ref,
       items: detailed.map((l) => ({ name: l.product.name, qty: l.qty, total: l.lineTotal })),
       subtotal, discount, delivery, total, payment, delivery_details: d,
-      placedAt: new Date().toISOString(),
+      placedAt,
     }
     sessionStorage.setItem('chikwafu-last-order', JSON.stringify(order))
+
+    // Push the real order into the admin ledger so the dashboard reflects it.
+    addOrder({
+      ref, placedAt, status: 'pending',
+      customer: { name: d.fullName, phone: d.phone, email: d.email || undefined },
+      destination: { region: d.region, town: d.town, address: d.address },
+      payment,
+      items: detailed.map((l) => ({
+        productId: l.product.id, name: l.product.name, qty: l.qty,
+        unitPrice: l.product.price, lineTotal: l.lineTotal,
+      })),
+      subtotal, discount, delivery, total,
+      express: detailed.some((l) => l.product.express),
+    })
     setTimeout(() => {
       clear()
       nav('/order-confirmed')
