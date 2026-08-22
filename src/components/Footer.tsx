@@ -98,7 +98,7 @@ export function Footer() {
       </div>
 
       <div className="container-x relative z-10 flex flex-col items-center justify-between gap-4 border-t border-white/10 py-6 text-[12px] text-text-dim sm:flex-row">
-        <p>© {new Date().getFullYear()} Chikwafu Appliances Ltd. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} Chikwafu Technology Ltd. All rights reserved.</p>
         <div className="flex items-center gap-4">
           <span className="rounded-md border border-white/15 px-2.5 py-1 text-[10.5px] font-semibold tracking-wide">
             MTN MoMo

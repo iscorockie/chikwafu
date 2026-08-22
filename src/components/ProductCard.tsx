@@ -25,7 +25,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       transition={{ duration: 0.55, delay: Math.min(index * 0.05, 0.3), ease: [0.22, 1, 0.36, 1] }}
       className="group relative flex flex-col"
     >
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-card">
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white">
         <Link to={`/product/${product.slug}`} aria-label={product.name}>
           <div className="aspect-square overflow-hidden">
             <img

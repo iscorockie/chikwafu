@@ -91,7 +91,7 @@ export default function ProductDetail() {
 
       <div className="container-x mt-7 grid gap-10 lg:grid-cols-2 lg:gap-14">
         <div className="lg:sticky lg:top-[92px] lg:self-start">
-          <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-card">
+          <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-white">
             <AnimatePresence mode="wait">
               <motion.img
                 key={shot}
@@ -126,7 +126,7 @@ export default function ProductDetail() {
                 onClick={() => setShot(i)}
                 aria-label={`View ${s.label}`}
                 className={cx(
-                  'group relative overflow-hidden rounded-xl bg-card transition-all duration-300',
+                  'group relative overflow-hidden rounded-xl bg-white transition-all duration-300',
                   shot === i ? 'ring-2 ring-accent ring-offset-2 ring-offset-bg' : 'opacity-65 hover:opacity-100',
                 )}
               >

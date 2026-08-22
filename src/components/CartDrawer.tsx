@@ -127,7 +127,7 @@ export function CartDrawer() {
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="h-[86px] w-[86px] rounded-xl bg-card object-cover"
+                            className="h-[86px] w-[86px] rounded-xl bg-white object-cover"
                           />
                         </Link>
                         <div className="flex min-w-0 flex-1 flex-col">

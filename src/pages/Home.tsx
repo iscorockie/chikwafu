@@ -108,7 +108,7 @@ function Hero() {
           transition={{ duration: 1, delay: 0.15, ease }}
           className="relative"
         >
-          <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-card p-6 shadow-lift sm:p-10">
+          <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-white p-6 shadow-lift sm:p-10">
             <img
               src={hero.image}
               alt={hero.name}
@@ -226,7 +226,7 @@ function Collections() {
           >
             <Link
               to={`/shop?category=${encodeURIComponent(c.category)}`}
-              className="group relative block overflow-hidden rounded-2xl border border-white/10 bg-card"
+              className="group relative block overflow-hidden rounded-2xl border border-white/10 bg-white"
             >
               <div className="aspect-[4/5] overflow-hidden">
                 <img

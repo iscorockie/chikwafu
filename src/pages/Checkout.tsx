@@ -423,7 +423,7 @@ export default function Checkout() {
                           <img
                             src={l.product.image}
                             alt=""
-                            className="h-14 w-14 rounded-lg bg-card object-cover"
+                            className="h-14 w-14 rounded-lg bg-white object-cover"
                           />
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-[13.5px] font-medium">{l.product.name}</p>
@@ -471,7 +471,7 @@ export default function Checkout() {
                     <img
                       src={l.product.image}
                       alt=""
-                      className="h-12 w-12 rounded-lg bg-card object-cover"
+                      className="h-12 w-12 rounded-lg bg-white object-cover"
                     />
                     <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-[20px] place-items-center rounded-full bg-bg-2 px-1 text-[10.5px] font-bold text-text">
                       {l.qty}
