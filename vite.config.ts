@@ -1,7 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
+// BASE is set to '/chikwafu/' for GitHub Pages, '/' for local dev/preview
 export default defineConfig({
+  base: process.env.BASE ?? '/',
   plugins: [react()],
   server: {
     host: '0.0.0.0',

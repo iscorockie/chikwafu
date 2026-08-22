@@ -9,3 +9,7 @@ export const cx = (...parts: (string | false | null | undefined)[]) =>
 
 export const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+
+/** Resolve a public-folder asset against Vite's base URL (needed for GitHub Pages subpaths). */
+export const asset = (path: string) =>
+  `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`.replace(/([^:]\/)\/+/g, '$1')
