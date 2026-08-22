@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import api from "../lib/api";
+import { UGX } from "../lib/money";
 import { Modal } from "../components/UI";
 
 const statuses = ["pending", "processing", "shipped", "delivered", "cancelled"];
@@ -86,7 +87,7 @@ export default function Orders() {
                     <p className="text-xs text-ink-400">{o.user?.email}</p>
                   </td>
                   <td>{o.items.length} item(s)</td>
-                  <td className="font-semibold">${o.totalPrice.toFixed(2)}</td>
+                  <td className="font-semibold">{UGX(o.totalPrice)}</td>
                   <td>
                     <span className={`badge ${statusColor[o.status]}`}>{o.status}</span>
                   </td>
@@ -117,14 +118,14 @@ export default function Orders() {
                 {selected.items.map((it, i) => (
                   <div key={i} className="flex justify-between">
                     <span>{it.name} × {it.qty}</span>
-                    <span>${(it.price * it.qty).toFixed(2)}</span>
+                    <span>{UGX(it.price * it.qty)}</span>
                   </div>
                 ))}
               </div>
             </div>
             <div className="flex justify-between font-bold border-t border-ink-100 pt-3">
               <span>Total</span>
-              <span>${selected.totalPrice.toFixed(2)}</span>
+              <span>{UGX(selected.totalPrice)}</span>
             </div>
             <div>
               <p className="text-xs font-bold uppercase text-ink-400 mb-2">Update Status</p>

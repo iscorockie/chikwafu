@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../lib/api";
+import { UGX } from "../lib/money";
 import { Modal } from "../components/UI";
 
 const emptyForm = {
@@ -160,8 +161,8 @@ export default function Products() {
                   </td>
                   <td>{p.category?.name}</td>
                   <td>
-                    <span className="font-semibold">${p.price.toFixed(2)}</span>
-                    {p.compareAtPrice > 0 && <span className="text-xs text-ink-400 line-through ml-1">${p.compareAtPrice.toFixed(2)}</span>}
+                    <span className="font-semibold">{UGX(p.price)}</span>
+                    {p.compareAtPrice > 0 && <span className="text-xs text-ink-400 line-through ml-1">{UGX(p.compareAtPrice)}</span>}
                   </td>
                   <td>
                     <span className={p.stock === 0 ? "text-red-500 font-semibold" : ""}>{p.stock}</span>
