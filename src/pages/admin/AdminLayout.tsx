@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import {
-  ArrowLeft, LayoutDashboard, Menu, Package, ShoppingCart, Store, X,
+  ArrowLeft, LayoutDashboard, LogOut, Menu, Package, ShoppingCart, Store, X,
 } from 'lucide-react'
 import { Logo } from '../../components/Logo'
 import { cx } from '../../lib/format'
+import { useAuth } from '../../store/auth'
+import AdminLogin from './Login'
 
 const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -16,7 +18,20 @@ const NAV = [
 export default function AdminLayout() {
   const [open, setOpen] = useState(false)
   const loc = useLocation()
+  const expiresAt = useAuth((s) => s.expiresAt)
+  const signOut = useAuth((s) => s.signOut)
+  const authed = expiresAt > Date.now()
+
   useEffect(() => setOpen(false), [loc.pathname])
+
+  // Expire the session in-place if the tab is left open past the window.
+  useEffect(() => {
+    if (!authed) return
+    const t = setTimeout(signOut, Math.max(0, expiresAt - Date.now()))
+    return () => clearTimeout(t)
+  }, [authed, expiresAt, signOut])
+
+  if (!authed) return <AdminLogin />
 
   const nav = (
     <nav className="flex flex-col gap-1">
@@ -61,12 +76,20 @@ export default function AdminLayout() {
               </span>
             </Link>
           </div>
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-[12.5px] font-bold text-text-muted transition hover:border-white/35 hover:text-text"
-          >
-            <Store size={14} /> <span className="hidden sm:inline">View</span> storefront
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-[12.5px] font-bold text-text-muted transition hover:border-white/35 hover:text-text"
+            >
+              <Store size={14} /> <span className="hidden sm:inline">View</span> storefront
+            </Link>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-[12.5px] font-bold text-text-muted transition hover:border-danger/50 hover:text-danger"
+            >
+              <LogOut size={14} /> <span className="hidden sm:inline">Sign out</span>
+            </button>
+          </div>
         </div>
       </header>
 
