@@ -30,7 +30,7 @@ export default function FlashSaleBanner() {
             <Zap size={14} className="fill-gold-300" /> Flash Sale
           </span>
           <h3 className="text-2xl md:text-3xl font-semibold mb-2">Up to 70% Off</h3>
-          <p className="text-ink-300 text-sm mb-5">Limited time offer on selected accessories.</p>
+          <p className="text-ink-300 text-sm mb-5">Limited time offer on selected appliances.</p>
           <div className="flex gap-3 mb-6">
             {[["Days", d], ["Hours", h], ["Mins", m], ["Secs", s]].map(([label, val]) => (
               <div key={label} className="bg-white/10 rounded-lg px-3 py-2 text-center min-w-[56px]">

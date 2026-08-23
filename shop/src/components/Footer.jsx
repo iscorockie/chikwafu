@@ -13,7 +13,7 @@ export default function Footer() {
             <span className="font-display text-xl font-semibold text-white">Chikwafu</span>
           </div>
           <p className="text-sm text-ink-300 max-w-xs">
-            Everyday carry, elevated. Considered accessories for work, travel and the life between.
+            Genuine home appliances with real warranty — fridges, cookers, washers, TVs and kitchen essentials. Delivered across Uganda.
           </p>
           <div className="flex gap-3 mt-5">
             {[Instagram, Twitter, Facebook, Mail].map((Icon, i) => (

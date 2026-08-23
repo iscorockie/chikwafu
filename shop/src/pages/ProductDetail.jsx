@@ -8,7 +8,7 @@ import { useWishlist } from "../context/WishlistContext";
 import { useAuth } from "../context/AuthContext";
 import ProductCard from "../components/ProductCard";
 
-const PLACEHOLDER = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=900&q=80";
+const PLACEHOLDER = "https://images.unsplash.com/photo-1556911220-bff31c812dba?w=900&q=80";
 
 export default function ProductDetail() {
   const { slug } = useParams();

@@ -1,15 +1,14 @@
 import { Link } from "react-router-dom";
-import { Backpack, Headphones, Watch, Wallet, Gamepad2, Glasses, Luggage, Speaker, Grid3x3 } from "lucide-react";
+import { Refrigerator, CookingPot, WashingMachine, Tv, Zap, Smartphone, Laptop, Grid3x3 } from "lucide-react";
 
 const iconMap = {
-  backpack: Backpack,
-  headphones: Headphones,
-  watch: Watch,
-  wallet: Wallet,
-  gamepad: Gamepad2,
-  glasses: Glasses,
-  luggage: Luggage,
-  speaker: Speaker,
+  kitchen: CookingPot,
+  cooling: Refrigerator,
+  laundry: WashingMachine,
+  "home entertainment": Tv,
+  "small appliances": Zap,
+  "phones & tablets": Smartphone,
+  computing: Laptop,
 };
 
 export default function CategoryStrip({ categories = [] }) {
@@ -23,7 +22,7 @@ export default function CategoryStrip({ categories = [] }) {
       </div>
       <div className="grid grid-cols-4 md:grid-cols-8 gap-3 md:gap-4">
         {categories.slice(0, 8).map((c) => {
-          const Icon = iconMap[c.icon] || Grid3x3;
+          const Icon = iconMap[String(c.icon || c.name || "").toLowerCase()] || Grid3x3;
           return (
             <Link
               key={c._id}

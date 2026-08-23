@@ -1,17 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Backpack, Headphones, Watch, Wallet, Gamepad2, Glasses, Luggage, Speaker, Grid3x3 } from "lucide-react";
+import { Refrigerator, CookingPot, WashingMachine, Tv, Zap, Smartphone, Laptop, Grid3x3 } from "lucide-react";
 import api from "../lib/api";
 
 const iconMap = {
-  backpack: Backpack,
-  headphones: Headphones,
-  watch: Watch,
-  wallet: Wallet,
-  gamepad: Gamepad2,
-  glasses: Glasses,
-  luggage: Luggage,
-  speaker: Speaker,
+  kitchen: CookingPot,
+  cooling: Refrigerator,
+  laundry: WashingMachine,
+  "home entertainment": Tv,
+  "small appliances": Zap,
+  "phones & tablets": Smartphone,
+  computing: Laptop,
 };
 
 export default function Categories() {
@@ -26,7 +25,7 @@ export default function Categories() {
       <h1 className="text-2xl font-semibold mb-8">All Categories</h1>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         {categories.map((c) => {
-          const Icon = iconMap[c.icon] || Grid3x3;
+          const Icon = iconMap[String(c.icon || c.name || "").toLowerCase()] || Grid3x3;
           return (
             <Link
               key={c._id}

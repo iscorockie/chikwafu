@@ -3,7 +3,7 @@ import { Heart, Star, ShoppingBag } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
 
-const PLACEHOLDER = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&q=80";
+const PLACEHOLDER = "https://images.unsplash.com/photo-1556911220-bff31c812dba?w=600&q=80";
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();

@@ -3,7 +3,7 @@ import { Minus, Plus, Trash2, ArrowRight } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 
-const PLACEHOLDER = "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=80";
+const PLACEHOLDER = "https://images.unsplash.com/photo-1556911220-bff31c812dba?w=200&q=80";
 
 export default function Cart() {
   const { items, updateQty, removeFromCart, subtotal } = useCart();

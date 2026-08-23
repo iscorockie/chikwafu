@@ -3,17 +3,17 @@ import { ArrowRight } from "lucide-react";
 
 const collections = [
   {
-    title: "Tech Essentials",
-    sub: "Smart tech for modern life",
-    img: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=700&q=80",
-    to: "/shop?category=tech",
+    title: "The Kitchen",
+    sub: "Cookers, microwaves, blenders and air fryers",
+    img: "https://images.unsplash.com/photo-1556911220-bff31c812dba?w=700&q=80",
+    to: "/shop?category=Kitchen",
     theme: "dark",
   },
   {
-    title: "Travel Collection",
-    sub: "Built for every adventure",
-    img: "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=700&q=80",
-    to: "/shop?category=travel",
+    title: "Cold Storage",
+    sub: "Fridges and freezers built for Ugandan power",
+    img: "https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=700&q=80",
+    to: "/shop?category=Cooling",
     theme: "light",
   },
 ];
