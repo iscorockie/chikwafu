@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from 'react-router-dom'
 import { Header } from './components/Header'
 import { Footer } from './components/Footer'
 import { CartDrawer } from './components/CartDrawer'
+import { StaleDataBanner } from './components/StaleDataBanner'
 import Home from './pages/Home'
 import Shop from './pages/Shop'
 import Express from './pages/Express'
@@ -26,6 +27,7 @@ function ScrollToTop() {
 function Storefront() {
   return (
     <div className="flex min-h-screen flex-col">
+      <StaleDataBanner />
       <Header />
       <main className="flex-1">
         <Routes>

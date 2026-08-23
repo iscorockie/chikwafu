@@ -111,34 +111,80 @@ function merge(api: ApiProduct): Product {
 
 export type ProductSource = 'api' | 'bundled'
 
+/** Why the bundled catalogue is being served instead of live data. */
+export type FallbackReason =
+  | 'not-configured'   // VITE_API_URL unset — expected on a static host
+  | 'cors'             // the API refused this origin: CLIENT_URL is wrong
+  | 'unreachable'      // network error, DNS, or the free instance is asleep
+  | 'http-error'       // the API answered, but not with 200
+  | 'empty'            // the API answered with no products
+  | null               // live data in use
+
 export interface CatalogueState {
   products: Product[]
   source: ProductSource
   loading: boolean
+  reason: FallbackReason
 }
 
-let cache: { products: Product[]; source: ProductSource } | null = null
+let cache: { products: Product[]; source: ProductSource; reason: FallbackReason } | null = null
 let inflight: Promise<void> | null = null
+
+/**
+ * Falling back is safe for shoppers but dangerous for operators: the shop
+ * looks perfectly normal while nothing the admin changes reaches it. So the
+ * reason is always recorded, logged, and — for a misconfiguration rather
+ * than a blip — shown on screen.
+ */
+function fallback(reason: Exclude<FallbackReason, null>, detail?: string) {
+  cache = { products: bundled, source: 'bundled', reason }
+
+  if (reason === 'not-configured') return // static build; nothing is wrong
+
+  const advice: Record<string, string> = {
+    cors:
+      `The API refused requests from ${window.location.origin}. Add this origin to ` +
+      "CLIENT_URL on the API service (it accepts a comma-separated list) and redeploy.",
+    unreachable:
+      `Could not reach ${API_URL}. It may be asleep, down, or blocked by DNS.`,
+    'http-error': `${API_URL} responded with an error${detail ? ` (${detail})` : ''}.`,
+    empty: `${API_URL} returned no products. Has the database been seeded?`,
+  }
+
+  console.error(
+    `[Chikwafu] Showing the built-in catalogue instead of live data.\n` +
+    `  Reason: ${reason}\n  ${advice[reason]}\n` +
+    "  Prices and stock on this page may be out of date, and admin changes will not appear.",
+  )
+}
 
 async function load() {
   if (!API_ENABLED) {
-    cache = { products: bundled, source: 'bundled' }
+    fallback('not-configured')
     return
   }
   try {
     const res = await fetch(`${API_URL}/api/products?limit=500`, {
       signal: AbortSignal.timeout(20000),
     })
-    if (!res.ok) throw new Error(String(res.status))
+    if (!res.ok) {
+      fallback('http-error', `HTTP ${res.status}`)
+      return
+    }
     const body = await res.json()
     const list: ApiProduct[] = Array.isArray(body) ? body : body.products ?? []
     const live = list.filter((p) => p.isActive !== false).map(merge)
-    // An empty database should not empty the shop.
-    cache = live.length
-      ? { products: live, source: 'api' }
-      : { products: bundled, source: 'bundled' }
-  } catch {
-    cache = { products: bundled, source: 'bundled' }
+    if (!live.length) {
+      // An empty database should not empty the shop.
+      fallback('empty')
+      return
+    }
+    cache = { products: live, source: 'api', reason: null }
+  } catch (err) {
+    // A blocked cross-origin request surfaces as an opaque TypeError with no
+    // status, which is exactly how a wrong CLIENT_URL presents.
+    const isAbort = err instanceof DOMException && err.name === 'TimeoutError'
+    fallback(isAbort ? 'unreachable' : 'cors')
   }
 }
 
@@ -150,7 +196,7 @@ export function useCatalogue(): CatalogueState {
   const [state, setState] = useState<CatalogueState>(() =>
     cache
       ? { ...cache, loading: false }
-      : { products: bundled, source: 'bundled', loading: API_ENABLED },
+      : { products: bundled, source: 'bundled', reason: null, loading: API_ENABLED },
   )
 
   useEffect(() => {
