@@ -48,8 +48,20 @@ The repo has a `render.yaml` blueprint, so all three services deploy together.
 
    ```
    https://chikwafu-api.onrender.com/api/health
-   → {"status":"ok","name":"Chikwafu API"}
+   → {"status":"ok","database":{"state":"connected",...}}
    ```
+
+   The health check reports the **database** state, not just that the process
+   is running:
+
+   | Response | Meaning |
+   | --- | --- |
+   | `200 ok` | connected and serving |
+   | `503 degraded` | process up, database unreachable — `database.lastError` says why |
+
+   `/api/health/live` is liveness only, and stays `200` whatever the database
+   is doing. Use it if you ever need to tell "restart me" apart from "my
+   dependency is down".
 
 ---
 

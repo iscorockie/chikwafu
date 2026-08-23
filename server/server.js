@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import morgan from "morgan";
-import connectDB from "./config/db.js";
+import connectDB, { dbStatus } from "./config/db.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 import authRoutes from "./routes/authRoutes.js";
@@ -48,7 +48,32 @@ app.use(
 app.use(express.json({ limit: "10mb" }));
 app.use(morgan("dev"));
 
-app.get("/api/health", (req, res) => res.json({ status: "ok", name: "Chikwafu API" }));
+/**
+ * Health check.
+ *
+ * Reports the DATABASE state, not merely that the process is running. Every
+ * meaningful route needs Mongo, so a reachable server with a dead database
+ * is not healthy — returning 200 there would let a platform keep routing
+ * traffic to an instance that fails every request.
+ *
+ *   200 + {"status":"ok"}        database connected
+ *   503 + {"status":"degraded"}  process up, database unreachable
+ */
+app.get("/api/health", (req, res) => {
+  const db = dbStatus();
+  res.status(db.ok ? 200 : 503).json({
+    status: db.ok ? "ok" : "degraded",
+    name: "Chikwafu API",
+    uptime: Math.round(process.uptime()),
+    database: db,
+  });
+});
+
+/** Liveness only — is the process alive? Used to tell "restart me" apart
+ *  from "my dependency is down". */
+app.get("/api/health/live", (req, res) =>
+  res.json({ status: "alive", uptime: Math.round(process.uptime()) }),
+);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);

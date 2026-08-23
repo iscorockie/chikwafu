@@ -88,6 +88,34 @@ export const diagnoseMongoUri = (uri) => {
   return problems;
 };
 
+/**
+ * Live connection state, for /api/health to report on.
+ *
+ * mongoose.connection.readyState is the source of truth; we add the last
+ * error so an operator can see *why* it is down without opening the logs.
+ */
+const READY_STATE = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
+
+let lastError = null;
+
+export const dbStatus = () => {
+  const state = READY_STATE[mongoose.connection.readyState] ?? "unknown";
+  return {
+    state,
+    ok: mongoose.connection.readyState === 1,
+    host: mongoose.connection.host || null,
+    name: mongoose.connection.name || null,
+    lastError: state === "connected" ? null : lastError,
+  };
+};
+
+/** Keep the recorded error in step with reconnects. */
+mongoose.connection.on("connected", () => { lastError = null; });
+mongoose.connection.on("error", (e) => { lastError = e?.message?.split("\n")[0] ?? String(e); });
+mongoose.connection.on("disconnected", () => {
+  if (!lastError) lastError = "connection lost";
+});
+
 const connectDB = async () => {
   const raw = process.env.MONGO_URI;
   const uri = sanitizeMongoUri(raw);
@@ -110,6 +138,7 @@ const connectDB = async () => {
   try {
     const conn = await mongoose.connect(uri, { serverSelectionTimeoutMS: 15000 });
     console.log(`MongoDB connected: ${conn.connection.host}/${conn.connection.name}`);
+    return true;
   } catch (err) {
     const msg = err.message || String(err);
     console.error(`\nMongoDB connection error: ${msg}\n`);
@@ -132,7 +161,12 @@ const connectDB = async () => {
       );
     }
     console.error("");
-    process.exit(1);
+
+    // Do NOT exit. The driver keeps retrying in the background, and staying
+    // up lets /api/health report the outage honestly — a crash loop just
+    // hides the cause and makes the platform think it is still starting.
+    lastError = msg.split("\n")[0];
+    return false;
   }
 };
 
