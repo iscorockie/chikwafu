@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Search, SlidersHorizontal, Star, X } from 'lucide-react'
-import { CATEGORIES, brands, priceBounds, products } from '../lib/catalog'
+import { CATEGORIES } from '../lib/catalog'
+import { useCatalogue } from '../lib/productSource'
 import { ProductCard } from '../components/ProductCard'
 import { UGX, UGXshort, cx } from '../lib/format'
 
@@ -15,7 +16,21 @@ const SORTS = [
 ] as const
 
 export default function Shop() {
+  const { products } = useCatalogue()
   const [params, setParams] = useSearchParams()
+
+  // Derived from whichever catalogue is live (API or bundled fallback).
+  const brands = useMemo(
+    () => [...new Set(products.map((p) => p.brand))].sort(),
+    [products],
+  )
+  const priceBounds = useMemo(
+    () => products.reduce(
+      (acc, p) => ({ min: Math.min(acc.min, p.price), max: Math.max(acc.max, p.price) }),
+      { min: Infinity, max: 0 },
+    ),
+    [products],
+  )
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const category = params.get('category') ?? ''
@@ -75,7 +90,7 @@ export default function Shop() {
         )
     }
     return list
-  }, [category, brand, sort, q, minRating, maxPrice, onlyDeals, inStock, expressOnly])
+  }, [products, category, brand, sort, q, minRating, maxPrice, onlyDeals, inStock, expressOnly])
 
   const activeCount = [category, brand, q, minRating ? '1' : '', onlyDeals ? '1' : '', inStock ? '1' : '',
     expressOnly ? '1' : '', maxPrice < priceBounds.max ? '1' : ''].filter(Boolean).length

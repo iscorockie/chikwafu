@@ -8,7 +8,8 @@ import {
   Truck,
   Wrench,
 } from 'lucide-react'
-import { collections, products } from '../lib/catalog'
+import { collections } from '../lib/catalog'
+import { useCatalogue } from '../lib/productSource'
 import { ExpressBadge } from '../components/ExpressBadge'
 import { ProductCard } from '../components/ProductCard'
 import { Stars } from '../components/Stars'
@@ -17,6 +18,7 @@ import { UGX } from '../lib/format'
 const ease = [0.22, 1, 0.36, 1] as const
 
 function Hero() {
+  const { products } = useCatalogue()
   // Fall back to the first featured product so a catalogue change can never
   // blank the hero (a hardcoded slug previously did exactly that).
   const hero =
@@ -253,6 +255,7 @@ function Collections() {
 }
 
 function Featured() {
+  const { products } = useCatalogue()
   const list = products.filter((p) => p.featured).slice(0, 4)
   return (
     <section className="border-y border-white/10 bg-bg-2 py-20">
@@ -283,6 +286,7 @@ function Featured() {
 }
 
 function Promo() {
+  const { products } = useCatalogue()
   const p =
     products.find((x) => x.slug === 'hoffmans-6l-touch-air-fryer') ??
     products.find((x) => x.category === 'Kitchen') ??
@@ -343,6 +347,7 @@ function Promo() {
 }
 
 function Bestsellers() {
+  const { products } = useCatalogue()
   const list = products.filter((p) => p.bestseller || p.rating >= 4.5).slice(0, 8)
   return (
     <section className="container-x pb-20">
@@ -364,6 +369,7 @@ function Bestsellers() {
 }
 
 function Testimonials() {
+  const { products } = useCatalogue()
   // Pick the three highest-rated reviews across the catalogue, resilient to
   // catalogue changes (no hardcoded indices).
   const picks = products
@@ -447,6 +453,7 @@ function Newsletter() {
 }
 
 function ExpressBand() {
+  const { products } = useCatalogue()
   const count = products.filter((p) => p.express).length
   return (
     <section className="container-x py-6">

@@ -5,7 +5,7 @@ import {
   BadgeCheck, ChevronRight, Heart, Minus, Package, Plus, RotateCcw,
   ShieldCheck, ShoppingBag, Truck, Wrench, Zap,
 } from 'lucide-react'
-import { getProduct, products } from '../lib/catalog'
+import { useCatalogue } from '../lib/productSource'
 import { UGX, cx } from '../lib/format'
 import { Stars } from '../components/Stars'
 import { ExpressBadge } from '../components/ExpressBadge'
@@ -17,7 +17,8 @@ const ease = [0.22, 1, 0.36, 1] as const
 
 export default function ProductDetail() {
   const { slug = '' } = useParams()
-  const product = getProduct(slug)
+  const { products, loading } = useCatalogue()
+  const product = products.find((p) => p.slug === slug)
   const add = useCart((s) => s.add)
   const wishIds = useWishlist((s) => s.ids)
   const toggleWish = useWishlist((s) => s.toggle)
@@ -53,7 +54,10 @@ export default function ProductDetail() {
     })
   }, [product])
 
-  if (!product) return <Navigate to="/shop" replace />
+  if (!product) {
+    if (loading) return <div className="container-x py-24 text-center text-text-muted">Loading…</div>
+    return <Navigate to="/shop" replace />
+  }
 
   const wished = wishIds.includes(product.id)
   const off = product.compareAt ? Math.round((1 - product.price / product.compareAt) * 100) : 0
