@@ -18,6 +18,31 @@ export const sanitizeMongoUri = (raw) => {
 };
 
 /**
+ * Repair a database name that swallowed part of the query string.
+ *
+ * Atlas gives you `.../?retryWrites=true&w=majority&appName=Cluster0`. If the
+ * database name is typed over that gap carelessly you get something like
+ * `/chikwafu=Cluster0`, and Mongo dutifully uses that whole string as the
+ * database name — so the app reads from one place and the seed writes to
+ * another, with no error anywhere.
+ *
+ * A real database name cannot contain any of  / \\ . " $ * < > : | ?  or "=".
+ */
+export const repairDbName = (uri) => {
+  const m = uri.match(/^(mongodb(?:\+srv)?:\/\/[^/]+)\/([^?]*)(\?.*)?$/);
+  if (!m) return { uri, repaired: null };
+
+  const [, prefix, rawDb, query = ""] = m;
+  if (!rawDb || !/[=&]/.test(rawDb)) return { uri, repaired: null };
+
+  // Keep only what precedes the first "=" or "&".
+  const clean = rawDb.split(/[=&]/)[0];
+  if (!clean || clean === rawDb) return { uri, repaired: null };
+
+  return { uri: `${prefix}/${clean}${query}`, repaired: { from: rawDb, to: clean } };
+};
+
+/**
  * Explain, in plain terms, why a connection string won't work.
  * Returns an array of problems; empty means it looks usable.
  */
@@ -46,6 +71,14 @@ export const diagnoseMongoUri = (uri) => {
   const afterHost = uri.replace(/^mongodb(\+srv)?:\/\/[^/]+/, "");
   const [path = "", query = ""] = afterHost.split("?");
   const dbName = path.replace(/^\//, "");
+
+  if (dbName && /[/\\. "$*<>:|?=&]/.test(dbName)) {
+    problems.push(
+      `The database name "${dbName}" contains characters Mongo does not allow. ` +
+      'This usually means part of the query string was absorbed into it — the name ' +
+      'belongs between the host and the "?", e.g. .../chikwafu?retryWrites=true',
+    );
+  }
 
   if (!dbName) {
     problems.push(
@@ -118,10 +151,20 @@ mongoose.connection.on("disconnected", () => {
 
 const connectDB = async () => {
   const raw = process.env.MONGO_URI;
-  const uri = sanitizeMongoUri(raw);
+  let uri = sanitizeMongoUri(raw);
 
   if (raw && raw !== uri) {
     console.warn("MONGO_URI had surrounding whitespace or quotes — trimmed automatically.");
+  }
+
+  const fixed = repairDbName(uri);
+  if (fixed.repaired) {
+    console.warn(
+      `MONGO_URI database name was "${fixed.repaired.from}" — part of the query string ` +
+      `had been absorbed into it. Using "${fixed.repaired.to}" instead.`,
+    );
+    console.warn("  Correct the value in your host's environment settings to silence this.");
+    uri = fixed.uri;
   }
 
   const problems = diagnoseMongoUri(uri);
