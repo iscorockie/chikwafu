@@ -61,11 +61,51 @@ app.use(morgan("dev"));
  */
 app.get("/api/health", (req, res) => {
   const db = dbStatus();
-  res.status(db.ok ? 200 : 503).json({
-    status: db.ok ? "ok" : "degraded",
+
+  // A storefront whose origin is missing from CLIENT_URL still renders — it
+  // silently falls back to its bundled catalogue — so this misconfiguration
+  // is invisible from the outside. Surface it here, where monitoring looks.
+  const configured = allowedOrigins.filter((o) => !/localhost/.test(o));
+  const corsWarning =
+    configured.length === 0
+      ? "CLIENT_URL and ADMIN_URL are unset, so only localhost origins are allowed. " +
+        "Any deployed storefront will be refused and will serve stale data."
+      : null;
+
+  const ok = db.ok && !corsWarning;
+  res.status(ok ? 200 : 503).json({
+    status: ok ? "ok" : "degraded",
     name: "Chikwafu API",
     uptime: Math.round(process.uptime()),
     database: db,
+    cors: { allowedOrigins, warning: corsWarning },
+  });
+});
+
+/**
+ * Ask whether a specific origin is allowed, without needing a browser:
+ *   /api/health/origin?url=https://chikwafu.com
+ * Lets a deploy check confirm CORS before customers hit a stale shop.
+ */
+app.get("/api/health/origin", (req, res) => {
+  const url = String(req.query.url || "").trim().replace(/\/$/, "");
+  if (!url) {
+    return res.status(400).json({
+      message: "Pass ?url=https://your-site.example to check an origin.",
+    });
+  }
+  const allowed = allowedOrigins.includes(url);
+  res.status(allowed ? 200 : 409).json({
+    origin: url,
+    allowed,
+    allowedOrigins,
+    ...(allowed
+      ? {}
+      : {
+          fix:
+            `Add ${url} to CLIENT_URL (or ADMIN_URL) on the API service. ` +
+            "Both accept a comma-separated list. Redeploy for it to take effect.",
+        }),
   });
 });
 
