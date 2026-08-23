@@ -43,11 +43,11 @@ services:
           name: chikwafu-admin
           envVarKey: RENDER_EXTERNAL_URL
 
-  # ── Customer storefront ──────────────────────────────────────────────
+  # ── Customer storefront (dark Chikwafu design) ───────────────────────
   - type: web
     name: chikwafu-shop
     runtime: static
-    rootDir: shop
+    rootDir: storefront
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     envVars:
