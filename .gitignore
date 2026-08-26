@@ -1,4 +1,12 @@
 node_modules
-.env
 dist
-storefront/dist
+dist-ssr
+*.local
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea

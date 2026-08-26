@@ -1,119 +1,79 @@
-# Chikwafu — eShop Platform
+# Chikwafu — Electric Appliances Storefront
 
-A full-stack e-commerce platform: a customer-facing shop, an admin dashboard, and a REST API.
+A production-ready e-commerce storefront for **Chikwafu Appliances**, a Ugandan retailer of
+electric home appliances. Built with React, TypeScript, Vite and Tailwind CSS.
 
-- **API** — Node.js, Express, MongoDB (Mongoose), JWT auth — `/server`
-- **Shop** — React (Vite), Tailwind CSS — `/shop`
-- **Admin** — React (Vite), Tailwind CSS — `/admin`
+![Chikwafu](public/products/kettle.webp)
 
 ## Features
 
-**Shop**
-- Home page: hero, trust badges, category grid, featured products, flash-sale countdown, collections, new arrivals, newsletter
-- Full product catalog with search, category filter, price filter, sort
-- Product detail page with image, ratings, reviews (submit + view), related products
-- Cart (persisted in localStorage) and checkout flow with shipping + payment method
-- Customer auth (register/login), account page with order history
-- Wishlist
+- **Striking home page** — editorial hero, featured collections by room, promo block, bestsellers,
+  customer testimonials and newsletter capture.
+- **Product grid with filters & sorting** — filter by category, brand, max price (range slider),
+  minimum rating, on-offer and in-stock toggles; sort by featured, price, rating or name.
+  All filter state lives in the URL, so any view is shareable and back-button friendly.
+- **Rich product detail pages** — multi-angle image gallery, spec tables, highlight lists,
+  a rating-distribution histogram and filterable verified reviews.
+- **Slide-out cart** — spring-animated drawer with quantity controls, free-delivery progress bar,
+  coupon display and live totals.
+- **Streamlined checkout** — three steps (delivery → payment → review) with per-field validation,
+  Ugandan district selection, and dynamic delivery pricing.
+- **Ugandan market fit** — UGX pricing throughout, MTN Mobile Money / Airtel Money / card /
+  cash-on-delivery, district-based delivery fees, and locally-grounded copy and reviews.
+- **Persistent state** — cart and wishlist survive reloads via `zustand/persist` (localStorage).
+- **Fully responsive** — bottom-sheet filters and a slide-in nav drawer on mobile.
+- **Accessible** — semantic landmarks, ARIA labels, keyboard-dismissable overlays,
+  visible focus rings and a `prefers-reduced-motion` fallback.
 
-**Admin**
-- Login (admin-only accounts)
-- Dashboard: revenue, order count, product count, pending orders, orders-by-status chart, recent orders
-- Products: create/edit/delete, feature flags (featured, new arrival, flash sale)
-- Categories: create/edit/delete
-- Orders: view details, update status (pending → processing → shipped → delivered/cancelled)
-- Users: promote/demote admin role, enable/disable accounts, delete
+## Tech stack
 
-**API**
-- JWT auth (register/login/me)
-- Products (CRUD, search, filter, sort, pagination, reviews)
-- Categories (CRUD)
-- Orders (create, my orders, all orders — admin, status update, dashboard stats)
-- Users (admin management, wishlist toggle)
+| Concern | Choice |
+| --- | --- |
+| Framework | React 19 + TypeScript |
+| Build | Vite 8 |
+| Styling | Tailwind CSS 3 (custom design tokens) |
+| State | Zustand with `persist` middleware |
+| Animation | Framer Motion |
+| Icons | Lucide |
+| Routing | React Router 7 |
 
-## Deploying
-
-See **[DEPLOY.md](DEPLOY.md)** — MongoDB Atlas + Render, via the `render.yaml`
-blueprint in this repo.
-
-## Getting Started
-
-### 1. Prerequisites
-- Node.js 18+
-- MongoDB running locally (or a MongoDB Atlas connection string)
-
-### 2. API Server
+## Getting started
 
 ```bash
-cd server
-cp .env.example .env      # edit MONGO_URI / JWT_SECRET if needed
 npm install
-npm run seed               # loads the Chikwafu catalogue + an admin user
-npm run dev                 # runs on http://localhost:5000
+npm run dev      # http://localhost:5173
+npm run build    # production bundle to dist/
+npm run preview  # serve the production build
 ```
 
-Seeded admin login: **admin@chikwafu.com / admin123**
+## Demo data
 
-The seed loads the real Chikwafu catalogue — 78 products across 7 categories
-(Kitchen, Laundry, Cooling, Home Entertainment, Small Appliances,
-Phones & Tablets, Computing), priced in UGX.
+Ten appliances across five categories are seeded in `src/lib/catalog.ts`, each with realistic
+UGX pricing, specifications, warranty terms, stock levels and hand-written customer reviews
+from locations around Uganda.
 
-Product images are served by the shop from `/jumia/*.webp`. If the front end
-is hosted on a different origin, set `ASSET_BASE` before seeding:
+**Promo codes:** `KARIBU10` (10% off) · `CHIKWAFU5` (5% off)
 
-```bash
-ASSET_BASE=https://your-shop-host npm run seed
-```
+Delivery is free on orders above UGX 1,500,000; otherwise UGX 15,000 within
+Kampala/Wakiso/Mukono and UGX 45,000 upcountry.
 
-### 3. Shop (customer site)
-
-```bash
-cd shop
-cp .env.example .env
-npm install
-npm run dev                 # runs on http://localhost:5173
-```
-
-### 4. Admin Dashboard
-
-```bash
-cd admin
-cp .env.example .env
-npm install
-npm run dev                 # runs on http://localhost:5174
-```
-
-Log in to the admin with the seeded admin account above.
-
-## Project Structure
+## Project structure
 
 ```
-chikwafu/
-├── server/            # Express + MongoDB API
-│   ├── config/
-│   ├── controllers/
-│   ├── middleware/
-│   ├── models/
-│   ├── routes/
-│   ├── seed.js
-│   └── server.js
-├── shop/               # Customer-facing store (Vite + React + Tailwind)
-│   └── src/
-│       ├── components/
-│       ├── context/
-│       ├── lib/
-│       └── pages/
-└── admin/              # Admin dashboard (Vite + React + Tailwind)
-    └── src/
-        ├── components/
-        ├── context/
-        ├── lib/
-        └── pages/
+src/
+├── components/   Header, Footer, CartDrawer, ProductCard, Stars, Logo
+├── pages/        Home, Shop, ProductDetail, Checkout, OrderConfirmed, NotFound
+├── store/        cart.ts (persisted), wishlist.ts (persisted)
+└── lib/          catalog.ts (seed data), types.ts, format.ts
 ```
 
-## Notes
+## Note
 
-- The shop and admin are separate apps so they can be deployed and scaled independently. Point both `.env` files at your deployed API URL in production.
-- Product images in the seed data are left empty; the UI falls back to a placeholder. Add real image URLs via the admin Products form (comma-separated URLs) or extend the API with an upload endpoint (`multer` is already a dependency).
-- Update `JWT_SECRET` in `server/.env` before deploying.
-- CORS in `server/server.js` is restricted to `CLIENT_URL` and `ADMIN_URL` — update these for your deployed domains.
+This is a demonstration storefront. Checkout simulates payment authorisation — no gateway is
+called and no real transaction occurs. To go live, wire the `placeOrder` handler in
+`src/pages/Checkout.tsx` to a payment provider such as Flutterwave, Pesapal or MTN MoMo's
+Collections API.
+
+## Licence
+
+MIT
