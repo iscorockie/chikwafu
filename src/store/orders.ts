@@ -26,6 +26,15 @@ export interface Order {
   delivery: number
   total: number
   express: boolean
+  /**
+   * Who took the order chat at the moment the client sent it in.
+   * 'admin' — Admin WhatsApp (+256 780 844098) was online; direct chat.
+   * 'agent' — Admin was offline, so the order was posted to the
+   *           "Chikwafu Orders" group chat and the Agent
+   *           (+256 786 028027) joined it — as an agent only.
+   * Agent-handled orders are ticketed to the Admin once delivered.
+   */
+  handledBy?: 'admin' | 'agent'
   /** present when the order came from the Express API */
   apiId?: string
 }
@@ -117,6 +126,9 @@ function seedOrders(): Order[] {
       items, subtotal, discount, delivery,
       total: subtotal - discount + delivery,
       express: items.some((l) => products.find((p) => p.id === l.productId)?.express),
+      // Roughly a third of demo orders arrived while the Admin was offline,
+      // so the Agent picked them up from the orders group chat.
+      handledBy: rand() > 0.68 ? 'agent' : 'admin',
     })
   }
   return out.sort((a, b) => +new Date(b.placedAt) - +new Date(a.placedAt))

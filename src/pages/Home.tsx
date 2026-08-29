@@ -13,10 +13,16 @@ import { ExpressBadge } from '../components/ExpressBadge'
 import { ProductCard } from '../components/ProductCard'
 import { Stars } from '../components/Stars'
 import { UGX } from '../lib/format'
+import { ADMIN_WA, AGENT_WA, waLink } from '../lib/whatsapp'
+import { usePresence } from '../store/presence'
 
 const ease = [0.22, 1, 0.36, 1] as const
 
 function Hero() {
+  // If the Admin's WhatsApp is offline, questions go to the Agent line
+  // (agent role only); otherwise the Admin takes the chat directly.
+  const adminOnline = usePresence((s) => s.adminOnline)
+  const supportContact = adminOnline ? ADMIN_WA : AGENT_WA
   // Fall back to the first featured product so a catalogue change can never
   // blank the hero (a hardcoded slug previously did exactly that).
   const hero =
@@ -74,7 +80,7 @@ function Hero() {
               <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
             </Link>
             <a
-              href="https://wa.me/256780844098?text=Hi%20Chikwafu%2C%20I%20have%20a%20question%20about%20an%20appliance"
+              href={waLink(supportContact, 'Hi Chikwafu, I have a question about an appliance')}
               target="_blank"
               rel="noreferrer noopener"
               className="btn-ghost"

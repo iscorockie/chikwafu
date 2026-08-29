@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Check, Package, Phone, Truck } from 'lucide-react'
+import { Check, Headset, MessageCircle, Package, Phone, Truck, Users } from 'lucide-react'
 import { UGX } from '../lib/format'
+import { ADMIN_WA, AGENT_WA, ORDERS_GROUP_NAME, waLink } from '../lib/whatsapp'
 
 interface Order {
   ref: string
@@ -14,6 +15,8 @@ interface Order {
   payment: string
   delivery_details: { fullName: string; phone: string; region: string; town: string; address: string }
   placedAt: string
+  /** 'admin' when the Admin was online at order time; 'agent' otherwise */
+  handledBy?: 'admin' | 'agent'
 }
 
 const LABELS: Record<string, string> = {
@@ -21,6 +24,18 @@ const LABELS: Record<string, string> = {
   airtel: 'Airtel Money',
   card: 'Card',
   cod: 'Cash on delivery',
+}
+
+/** The message the client drops into the orders group chat. */
+function groupMessage(o: Order): string {
+  const d = o.delivery_details
+  return [
+    `🛒 ${ORDERS_GROUP_NAME} — new order ${o.ref}`,
+    `👤 ${d.fullName} · ${d.phone}`,
+    `📍 ${d.address}, ${d.town}, ${d.region}`,
+    ...o.items.map((it) => `• ${it.qty}× ${it.name} — ${UGX(it.total)}`),
+    `💰 Total: ${UGX(o.total)} (${LABELS[o.payment] ?? o.payment})`,
+  ].join('\n')
 }
 
 export default function OrderConfirmed() {
@@ -153,6 +168,47 @@ export default function OrderConfirmed() {
                 {order.delivery_details.address}<br />
                 {order.delivery_details.town}, {order.delivery_details.region}
               </address>
+            </div>
+
+            {/* WhatsApp routing — depends on whether the Admin was online when the order came in */}
+            <div className="mt-4 rounded-xl border border-accent/25 bg-accent/6 p-5">
+              <p className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.14em] text-text-dim">
+                <MessageCircle size={13} className="text-accent" /> WhatsApp support for this order
+              </p>
+              {order.handledBy === 'agent' ? (
+                <>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-text-muted">
+                    Our Admin was offline when your order came in, so it has been posted to the{' '}
+                    <strong className="text-text">{ORDERS_GROUP_NAME}</strong> group chat. Our Agent{' '}
+                    <strong className="text-text">{AGENT_WA.display}</strong> has joined the chat as
+                    an agent and will handle your order there. Once it is delivered, a ticket goes
+                    to the Admin automatically.
+                  </p>
+                  <a
+                    href={waLink(AGENT_WA, groupMessage(order))}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="btn-primary mt-4"
+                  >
+                    <Users size={15} /> Open the {ORDERS_GROUP_NAME} chat
+                  </a>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-[13.5px] leading-relaxed text-text-muted">
+                    Our Admin is online and will chat with you directly on{' '}
+                    <strong className="text-text">{ADMIN_WA.display}</strong>.
+                  </p>
+                  <a
+                    href={waLink(ADMIN_WA, `Hi Chikwafu, I just placed order ${order.ref}.`)}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="btn-primary mt-4"
+                  >
+                    <Headset size={15} /> Chat with the Admin
+                  </a>
+                </>
+              )}
             </div>
           </div>
         </motion.div>
