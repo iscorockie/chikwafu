@@ -46,11 +46,18 @@ npm run build    # production bundle to dist/
 npm run preview  # serve the production build
 ```
 
-## Demo data
+## Catalog
 
-Ten appliances across five categories are seeded in `src/lib/catalog.ts`, each with realistic
-UGX pricing, specifications, warranty terms, stock levels and hand-written customer reviews
-from locations around Uganda.
+The catalogue in `src/lib/catalog.ts` combines:
+
+- **Core appliances** — ten appliances across five categories with realistic UGX pricing,
+  specifications, warranty terms, stock levels and hand-written customer reviews from
+  locations around Uganda.
+- **Ayne Kampala range (Aug 2026)** — 1,500+ gadgets imported from the Ayne Kampala store
+  (ayne.ug, Aponye Complex): wearables, audio, cables & chargers, power banks, gaming,
+  cameras, fans, grooming, car accessories and more. Real store/brand product photos live in
+  `public/ayne/` (square webp, 800px). Listings carry Ayne's UGX prices, feature bullets and
+  12-month warranty terms.
 
 **Promo codes:** `KARIBU10` (10% off) · `CHIKWAFU5` (5% off)
 
