@@ -31,8 +31,8 @@ export const products: Product[] = [
   {
     id: 'a756',
     slug: 'jbl-grip-portable-bluetooth-speaker',
-    name: 'JBL Grip Portable Bluetooth Speaker',
-    tagline: 'Take your music anywhere with the JBL Grip, a compact portable speaker designed to deliver powerful JBL Pro…',
+    name: 'JBL Flip Portable Bluetooth Speaker',
+    tagline: 'Take your music anywhere with the JBL Flip, a compact portable speaker designed to deliver powerful JBL Pro…',
     brand: 'JBL',
     category: 'Home Entertainment' as Category,
     price: 352000,
@@ -43,7 +43,7 @@ export const products: Product[] = [
     rating: 4.5, reviewCount: 15, stock: 1,
     warrantyMonths: 12,
     colour: 'Multi-colour',
-    description: 'Take your music anywhere with the JBL Grip, a compact portable speaker designed to deliver powerful JBL Pro Sound with punchy bass and clear audio. Its lightweight, easy-to-hold design makes it ideal for listening at home, travelling or enjoying music outdoors. Built for adventure, the speaker features an IP68 waterproof and dustproof rating alongside a drop-resistant construction. It can comfortably handle poolside listening, beach trips, unexpected rain and everyday knocks. Enjoy up to 14 hours of playback with Playtime Boost. Customisable ambient lighting on the rear panel adds atmosphere, while Auracast technology lets you pair two JBL Grip speakers for stereo sound or connect multiple compatible JBL speakers for wider coverage. Features Compact and lightweight portable design Powerful JBL Pro Sound Punchy bass with clear audio IP68 waterproof and dustproof protection Drop-resistant construction Up to 14 hours of playback with Playtime Boost Customisable ambient lighting Convenient side lighting control Auracast wireless connectivity Supports stereo pairing with two JBL Grip speakers Connects with multiple Auracast-enabled JBL speakers Suitable for indoor and outdoor use Specifications Speaker type: Portable Bluetooth speaker Audio technology: JBL Pro Sound Water and dust resistance: IP68 Playback time: Up to 14 hours with Playtime Boost Multi-speaker technology: Auracast Lighting: Customisable rear ambient light What’s in the Box JBL Grip portable Bluetooth speaker Quick-start guide Warranty and safety information',
+    description: 'Take your music anywhere with the JBL Flip, a compact portable speaker designed to deliver powerful JBL Pro Sound with punchy bass and clear audio. Its lightweight, easy-to-hold design makes it ideal for listening at home, travelling or enjoying music outdoors. Built for adventure, the speaker features an IP68 waterproof and dustproof rating alongside a drop-resistant construction. It can comfortably handle poolside listening, beach trips, unexpected rain and everyday knocks. Enjoy up to 14 hours of playback with Playtime Boost. Customisable ambient lighting on the rear panel adds atmosphere, while Auracast technology lets you pair two JBL Flip speakers for stereo sound or connect multiple compatible JBL speakers for wider coverage. Features Compact and lightweight portable design Powerful JBL Pro Sound Punchy bass with clear audio IP68 waterproof and dustproof protection Drop-resistant construction Up to 14 hours of playback with Playtime Boost Customisable ambient lighting Convenient side lighting control Auracast wireless connectivity Supports stereo pairing with two JBL Flip speakers Connects with multiple Auracast-enabled JBL speakers Suitable for indoor and outdoor use Specifications Speaker type: Portable Bluetooth speaker Audio technology: JBL Pro Sound Water and dust resistance: IP68 Playback time: Up to 14 hours with Playtime Boost Multi-speaker technology: Auracast Lighting: Customisable rear ambient light What’s in the Box JBL Flip portable Bluetooth speaker Quick-start guide Warranty and safety information',
     highlights: [
       'Speaker type: Portable Bluetooth speaker',
       'Audio technology: JBL Pro Sound',
