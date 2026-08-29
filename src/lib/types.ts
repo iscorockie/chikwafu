@@ -24,6 +24,8 @@ export interface GalleryShot {
   /** object-position value */
   pos: string
   label: string
+  /** optional real photo for this shot (overrides the base image) */
+  image?: string
 }
 
 export interface Product {

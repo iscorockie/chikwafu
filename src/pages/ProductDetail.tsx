@@ -95,7 +95,7 @@ export default function ProductDetail() {
             <AnimatePresence mode="wait">
               <motion.img
                 key={shot}
-                src={product.image}
+                src={g.image ?? product.image}
                 alt={`${product.name} — ${g.label}`}
                 initial={{ opacity: 0, scale: 1.02 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -131,7 +131,7 @@ export default function ProductDetail() {
                 )}
               >
                 <img
-                  src={product.image}
+                  src={s.image ?? product.image}
                   alt=""
                   style={{ transform: `scale(${s.zoom})`, objectPosition: s.pos }}
                   className="aspect-square w-full object-cover"

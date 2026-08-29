@@ -12,8 +12,10 @@ electric home appliances. Built with React, TypeScript, Vite and Tailwind CSS.
 - **Product grid with filters & sorting** — filter by category, brand, max price (range slider),
   minimum rating, on-offer and in-stock toggles; sort by featured, price, rating or name.
   All filter state lives in the URL, so any view is shareable and back-button friendly.
-- **Rich product detail pages** — multi-angle image gallery, spec tables, highlight lists,
-  a rating-distribution histogram and filterable verified reviews.
+- **Rich product detail pages** — real multi-angle image galleries (actual store/brand
+  photos from the Ayne and JBL listings where available, with simulated detail/angle crops
+  as fallback), spec tables, highlight lists, a rating-distribution histogram and
+  filterable verified reviews.
 - **Slide-out cart** — spring-animated drawer with quantity controls, free-delivery progress bar,
   coupon display and live totals.
 - **Streamlined checkout** — three steps (delivery → payment → review) with per-field validation,
@@ -57,14 +59,7 @@ The catalogue in `src/lib/catalog.ts` combines:
   (ayne.ug, Aponye Complex): wearables, audio, cables & chargers, power banks, gaming,
   cameras, fans, grooming, car accessories and more. Real store/brand product photos live in
   `public/ayne/` (square webp, 800px). Listings carry Ayne's UGX prices, feature bullets and
-  12-month warranty terms. Prices carry the standard 10% Chikwafu margin over
-  Ayne's list price (rounded to the nearest 1,000 UGX), same convention as the
-  core appliance range.
-- **JBL official range (Aug 2026)** — 130 products imported from the JBL Online Store
-  (jblonlinestore.com.my): portable speakers, soundbars, party speakers, headphones, earbuds,
-  gaming audio, microphones and accessories. Real product photos live in `public/jbl/`.
-  Prices are the store's MYR price converted to UGX (1 MYR ≈ 929 UGX, 29 Aug 2026) plus the
-  standard 10% Chikwafu margin, rounded to the nearest 1,000 UGX.
+  12-month warranty terms.
 
 **Promo codes:** `KARIBU10` (10% off) · `CHIKWAFU5` (5% off)
 
