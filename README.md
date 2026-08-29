@@ -52,7 +52,7 @@ npm run preview  # serve the production build
 
 The catalogue in `src/lib/catalog.ts` combines:
 
-- **Core appliances** — ten appliances across five categories with realistic UGX pricing,
+- **Core appliances** — 134 appliances across eight categories (incl. Home & Office) with realistic UGX pricing,
   specifications, warranty terms, stock levels and hand-written customer reviews from
   locations around Uganda.
 - **Ayne Kampala range (Aug 2026)** — 1,500+ gadgets imported from the Ayne Kampala store

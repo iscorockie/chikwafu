@@ -6,6 +6,7 @@ export type Category =
   | 'Small Appliances'
   | 'Phones & Tablets'
   | 'Computing'
+  | 'Home & Office'
 
 export interface Review {
   id: string
