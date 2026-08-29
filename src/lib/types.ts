@@ -25,6 +25,8 @@ export interface GalleryShot {
   /** object-position value */
   pos: string
   label: string
+  /** optional real photo for this shot (overrides the base image) */
+  image?: string
 }
 
 export interface Product {
@@ -61,7 +63,7 @@ export interface CartLine {
   qty: number
 }
 
-export type PaymentMethod = 'mtn' | 'airtel' | 'cod'
+export type PaymentMethod = 'mtn' | 'airtel' | 'card' | 'cod'
 
 export interface DeliveryDetails {
   fullName: string

@@ -12,8 +12,10 @@ electric home appliances. Built with React, TypeScript, Vite and Tailwind CSS.
 - **Product grid with filters & sorting** — filter by category, brand, max price (range slider),
   minimum rating, on-offer and in-stock toggles; sort by featured, price, rating or name.
   All filter state lives in the URL, so any view is shareable and back-button friendly.
-- **Rich product detail pages** — multi-angle image gallery, spec tables, highlight lists,
-  a rating-distribution histogram and filterable verified reviews.
+- **Rich product detail pages** — real multi-angle image galleries (actual store/brand
+  photos from the Ayne and JBL listings where available, with simulated detail/angle crops
+  as fallback), spec tables, highlight lists, a rating-distribution histogram and
+  filterable verified reviews.
 - **Slide-out cart** — spring-animated drawer with quantity controls, free-delivery progress bar,
   coupon display and live totals.
 - **Streamlined checkout** — three steps (delivery → payment → review) with per-field validation,
@@ -46,11 +48,18 @@ npm run build    # production bundle to dist/
 npm run preview  # serve the production build
 ```
 
-## Demo data
+## Catalog
 
-One hundred and thirty-four products across eight categories are seeded in `src/lib/catalog.ts`, each with realistic
-UGX pricing, specifications, warranty terms, stock levels and hand-written customer reviews
-from locations around Uganda.
+The catalogue in `src/lib/catalog.ts` combines:
+
+- **Core appliances** — 134 appliances across eight categories (incl. Home & Office) with realistic UGX pricing,
+  specifications, warranty terms, stock levels and hand-written customer reviews from
+  locations around Uganda.
+- **Ayne Kampala range (Aug 2026)** — 1,500+ gadgets imported from the Ayne Kampala store
+  (ayne.ug, Aponye Complex): wearables, audio, cables & chargers, power banks, gaming,
+  cameras, fans, grooming, car accessories and more. Real store/brand product photos live in
+  `public/ayne/` (square webp, 800px). Listings carry Ayne's UGX prices, feature bullets and
+  12-month warranty terms.
 
 **Promo codes:** `KARIBU10` (10% off) · `CHIKWAFU5` (5% off)
 
