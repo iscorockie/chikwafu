@@ -57,7 +57,9 @@ The catalogue in `src/lib/catalog.ts` combines:
   (ayne.ug, Aponye Complex): wearables, audio, cables & chargers, power banks, gaming,
   cameras, fans, grooming, car accessories and more. Real store/brand product photos live in
   `public/ayne/` (square webp, 800px). Listings carry Ayne's UGX prices, feature bullets and
-  12-month warranty terms.
+  12-month warranty terms. Prices carry the standard 10% Chikwafu margin over
+Ayne's list price (rounded to the nearest 1,000 UGX), same convention as the
+core appliance range.
 
 **Promo codes:** `KARIBU10` (10% off) · `CHIKWAFU5` (5% off)
 
