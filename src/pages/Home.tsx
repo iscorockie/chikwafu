@@ -201,7 +201,7 @@ function Collections() {
     <section className="container-x py-20">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="eyebrow">Shop by room</p>
+          <p className="eyebrow">Shop by department</p>
           <h2 className="mt-2.5 font-display text-[clamp(1.9rem,4vw,2.9rem)] font-semibold leading-tight">
             Featured collections
           </h2>
@@ -215,7 +215,7 @@ function Collections() {
         </Link>
       </div>
 
-      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {collections.map((c, i) => (
           <motion.div
             key={c.slug}

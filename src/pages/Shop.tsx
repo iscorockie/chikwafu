@@ -197,10 +197,10 @@ export default function Shop() {
       <header className="max-w-2xl">
         <p className="eyebrow">Catalogue</p>
         <h1 className="mt-2.5 font-display text-[clamp(2rem,4.6vw,3.2rem)] font-semibold leading-tight">
-          {category || 'All appliances'}
+          {category || 'All products'}
         </h1>
         <p className="mt-3 text-[14.5px] leading-relaxed text-text-muted">
-          Every unit is genuine stock with a local warranty. Prices include VAT — delivery is
+          Appliances, phones and home & office — genuine stock, VAT included. Delivery is
           calculated at checkout.
         </p>
       </header>
@@ -211,7 +211,7 @@ export default function Shop() {
           <input
             value={queryDraft}
             onChange={(e) => setQueryDraft(e.target.value)}
-            placeholder="Search fridges, kettles, 4K TVs…"
+            placeholder="Search fridges, iPhones, dinner sets…"
             aria-label="Search products"
             className="input pl-11"
           />
