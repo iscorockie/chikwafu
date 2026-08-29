@@ -13,6 +13,7 @@ const NAV = [
   { to: '/shop?category=Cooling', label: 'Cooling' },
   { to: '/shop?category=Home+Entertainment', label: 'Entertainment' },
   { to: '/shop?category=Laundry', label: 'Laundry' },
+  { to: '/shop?category=Fashion', label: 'Fashion' },
 ]
 
 export function Header() {
