@@ -200,8 +200,8 @@ export default function Shop() {
           {category || 'All products'}
         </h1>
         <p className="mt-3 text-[14.5px] leading-relaxed text-text-muted">
-          Appliances, phones and fashion — genuine stock, VAT included. Delivery is calculated at
-          checkout.
+          Appliances, phones and home & office — genuine stock, VAT included. Delivery is
+          calculated at checkout.
         </p>
       </header>
 
@@ -211,7 +211,7 @@ export default function Shop() {
           <input
             value={queryDraft}
             onChange={(e) => setQueryDraft(e.target.value)}
-            placeholder="Search fridges, iPhones, jeans…"
+            placeholder="Search fridges, iPhones, dinner sets…"
             aria-label="Search products"
             className="input pl-11"
           />

@@ -34,7 +34,7 @@ export function Footer() {
         <div>
           <h4 className="text-[11px] font-semibold uppercase tracking-[0.22em] text-text">Shop</h4>
           <ul className="mt-5 space-y-2.5 text-[13.5px]">
-            {['Kitchen', 'Cooling', 'Laundry', 'Home Entertainment', 'Fashion', 'Small Appliances'].map((c) => (
+            {['Kitchen', 'Cooling', 'Laundry', 'Home Entertainment', 'Home & Office', 'Small Appliances'].map((c) => (
               <li key={c}>
                 <Link
                   to={`/shop?category=${encodeURIComponent(c)}`}
