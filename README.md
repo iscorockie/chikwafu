@@ -48,7 +48,7 @@ npm run preview  # serve the production build
 
 ## Demo data
 
-Ninety-two appliances across seven categories are seeded in `src/lib/catalog.ts`, each with realistic
+One hundred and four appliances across seven categories are seeded in `src/lib/catalog.ts`, each with realistic
 UGX pricing, specifications, warranty terms, stock levels and hand-written customer reviews
 from locations around Uganda.
 
