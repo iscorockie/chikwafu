@@ -1,0 +1,17 @@
+// Cloudflare Workers Builds configuration.
+//
+// The storefront is a static Vite SPA, so we deploy it as a Worker with
+// static assets only — no server code.
+//   Build command:  npm run build
+//   Deploy command: npx wrangler deploy
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "chikwafu",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "./dist",
+    // Client-side React Router routes (e.g. /shop, /admin/tickets) must
+    // fall back to index.html instead of 404ing.
+    "not_found_handling": "single-page-application"
+  }
+}
