@@ -14,6 +14,7 @@ import Favorites from './pages/Favorites'
 import AdminLayout from './pages/admin/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import AdminOrders from './pages/admin/Orders'
+import AdminTickets from './pages/admin/Tickets'
 import AdminProducts from './pages/admin/Products'
 
 function ScrollToTop() {
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Dashboard />} />
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="tickets" element={<AdminTickets />} />
           <Route path="products" element={<AdminProducts />} />
         </Route>
         <Route path="*" element={<Storefront />} />

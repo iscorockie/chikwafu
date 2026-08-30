@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
-import { Mail, MapPin, Phone } from 'lucide-react'
+import { Headset, Mail, MapPin, Phone } from 'lucide-react'
 import { SocialIcons } from './SocialIcons'
 import { Logo } from './Logo'
+import { ADMIN_WA, AGENT_WA, waLink } from '../lib/whatsapp'
 
 export function Footer() {
   return (
@@ -82,9 +83,28 @@ export function Footer() {
             </li>
             <li className="flex gap-3">
               <Phone size={16} className="mt-0.5 shrink-0 text-accent" />
-              <a href="tel:+256780844098" className="transition hover:text-accent">
-                0780 844 098
-              </a>
+              <span>
+                <a href="tel:+256780844098" className="transition hover:text-accent">
+                  0780 844 098
+                </a>
+                <span className="block text-[11.5px] text-text-dim">WhatsApp Admin — {ADMIN_WA.display}</span>
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <Headset size={16} className="mt-0.5 shrink-0 text-accent" />
+              <span>
+                <a
+                  href={waLink(AGENT_WA)}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="transition hover:text-accent"
+                >
+                  {AGENT_WA.display}
+                </a>
+                <span className="block text-[11.5px] text-text-dim">
+                  WhatsApp Agent — joins your order chat only when the Admin is offline
+                </span>
+              </span>
             </li>
             <li className="flex gap-3">
               <Mail size={16} className="mt-0.5 shrink-0 text-accent" />

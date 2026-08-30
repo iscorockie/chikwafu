@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, Search, Truck, X, Zap } from 'lucide-react'
+import { ChevronDown, Headset, Search, Truck, X, Zap } from 'lucide-react'
 import {
   STATUS_FLOW, STATUS_META, type Order, type OrderStatus,
 } from '../../store/orders'
@@ -137,7 +137,17 @@ export default function AdminOrders() {
                           })}
                         </td>
                         <td className="px-5 py-4">
-                          <span className="block text-[13px] font-bold text-text">{o.customer.name}</span>
+                          <span className="block text-[13px] font-bold text-text">
+                            {o.customer.name}
+                            {o.handledBy === 'agent' && (
+                              <span
+                                title="Admin was offline at order time — handled by the Agent (+256 786 028027) in the Chikwafu Orders group chat. Ticketed to Admin on delivery."
+                                className="ml-2 inline-flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-2 py-0.5 text-[10px] font-bold text-amber-300"
+                              >
+                                <Headset size={10} /> Agent
+                              </span>
+                            )}
+                          </span>
                           <span className="text-[11.5px] text-text-muted">
                             {o.destination.town}, {o.destination.region}
                           </span>

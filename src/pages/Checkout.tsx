@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { COUPONS, deliveryFeeFor, useCart, useCartDetails } from '../store/cart'
 import { useOrders } from '../store/orders'
+import { usePresence } from '../store/presence'
 import { UGX, cx } from '../lib/format'
 import type { DeliveryDetails, PaymentMethod } from '../lib/types'
 import { api, API_ENABLED } from '../lib/api'
@@ -30,6 +31,7 @@ export default function Checkout() {
   const clearCoupon = useCart((s) => s.clearCoupon)
   const clear = useCart((s) => s.clear)
   const addOrder = useOrders((s) => s.addOrder)
+  const adminOnline = usePresence((s) => s.adminOnline)
 
   const [step, setStep] = useState(0)
   const [placing, setPlacing] = useState(false)
@@ -99,17 +101,21 @@ export default function Checkout() {
       }
     }
     const placedAt = new Date().toISOString()
+    // WhatsApp routing snapshot: if the Admin is offline right now, the order
+    // goes to the "Chikwafu Orders" group chat and the Agent joins it —
+    // strictly as an agent. If the Admin is online, they take the chat 1-to-1.
+    const handledBy: 'admin' | 'agent' = adminOnline ? 'admin' : 'agent'
     const order = {
       ref,
       items: detailed.map((l) => ({ name: l.product.name, qty: l.qty, total: l.lineTotal })),
       subtotal, discount, delivery, total, payment, delivery_details: d,
-      placedAt,
+      placedAt, handledBy,
     }
     sessionStorage.setItem('chikwafu-last-order', JSON.stringify(order))
 
     // Push the real order into the admin ledger so the dashboard reflects it.
     addOrder({
-      ref, placedAt, status: 'pending',
+      ref, placedAt, status: 'pending', handledBy,
       customer: { name: d.fullName, phone: d.phone, email: d.email || undefined },
       destination: { region: d.region, town: d.town, address: d.address },
       payment,

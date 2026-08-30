@@ -2,16 +2,21 @@ import { useEffect, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Link } from 'react-router-dom'
 import {
-  ArrowLeft, LayoutDashboard, LogOut, Menu, Package, ShoppingCart, Store, X,
+  ArrowLeft, LayoutDashboard, LogOut, Menu, Package, ShoppingCart, Store, Ticket, X,
 } from 'lucide-react'
 import { Logo } from '../../components/Logo'
 import { cx } from '../../lib/format'
 import { useAuth } from '../../store/auth'
+import { usePresence } from '../../store/presence'
+import { useOrders } from '../../store/orders'
+import { useTickets } from '../../store/tickets'
+import { ADMIN_WA } from '../../lib/whatsapp'
 import AdminLogin from './Login'
 
 const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/orders', label: 'Orders', icon: ShoppingCart, end: false },
+  { to: '/admin/tickets', label: 'Tickets', icon: Ticket, end: false },
   { to: '/admin/products', label: 'Products', icon: Package, end: false },
 ]
 
@@ -21,6 +26,14 @@ export default function AdminLayout() {
   const expiresAt = useAuth((s) => s.expiresAt)
   const signOut = useAuth((s) => s.signOut)
   const authed = expiresAt > Date.now()
+
+  const adminOnline = usePresence((s) => s.adminOnline)
+  const toggleAdmin = usePresence((s) => s.toggleAdmin)
+  const orders = useOrders((s) => s.orders)
+  const acknowledged = useTickets((s) => s.acknowledged)
+  const openTickets = orders.filter(
+    (o) => o.handledBy === 'agent' && o.status === 'delivered' && !acknowledged.includes(o.ref),
+  ).length
 
   useEffect(() => setOpen(false), [loc.pathname])
 
@@ -51,6 +64,11 @@ export default function AdminLayout() {
         >
           <Icon size={17} />
           {label}
+          {label === 'Tickets' && openTickets > 0 && (
+            <span className="ml-auto rounded-full bg-amber-400/20 px-2 py-0.5 text-[10.5px] font-black tabular-nums text-amber-300">
+              {openTickets}
+            </span>
+          )}
         </NavLink>
       ))}
     </nav>
@@ -77,6 +95,30 @@ export default function AdminLayout() {
             </Link>
           </div>
           <div className="flex items-center gap-2">
+            {/* Admin WhatsApp presence — decides where new order chats are routed */}
+            <button
+              onClick={toggleAdmin}
+              title={
+                adminOnline
+                  ? `Admin WhatsApp ${ADMIN_WA.display} is online — clients chat with you directly. Click to go offline.`
+                  : `Admin WhatsApp ${ADMIN_WA.display} is offline — new orders go to the group chat and the Agent joins as agent. Click to come back online.`
+              }
+              className={cx(
+                'flex items-center gap-2 rounded-full border px-4 py-2 text-[12.5px] font-bold transition',
+                adminOnline
+                  ? 'border-accent/40 bg-accent/10 text-accent hover:bg-accent/20'
+                  : 'border-amber-400/40 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20',
+              )}
+            >
+              <span
+                className={cx(
+                  'h-2 w-2 rounded-full',
+                  adminOnline ? 'bg-accent' : 'bg-amber-400',
+                )}
+              />
+              <span className="hidden sm:inline">WhatsApp</span>
+              {adminOnline ? 'Online' : 'Offline'}
+            </button>
             <Link
               to="/"
               className="flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-[12.5px] font-bold text-text-muted transition hover:border-white/35 hover:text-text"
