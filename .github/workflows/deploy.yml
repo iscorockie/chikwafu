@@ -1,8 +1,12 @@
 name: Deploy storefront to GitHub Pages
 
+# Deploys `main`. (Previously this only ran on the hand-synced `storefront-react`
+# deploy branch, which is an orphan history — `git merge-base main storefront-react`
+# returns nothing — so merges to main never reached the live site and it fell a
+# month behind. See DEPLOYMENT.md §1.)
 on:
   push:
-    branches: [storefront-react]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -22,7 +26,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
