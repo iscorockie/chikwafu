@@ -1,5 +1,7 @@
-import type { Category, Product, Review, GalleryShot } from './types'
-import { asset } from './format'
+// The explicit `.ts` extension keeps this module importable from plain Node
+// (the Express API in `server/` loads the catalogue directly) as well as Vite.
+import type { Category, Product, Review, GalleryShot } from './types.ts'
+import { asset } from './format.ts'
 
 /**
  * Core appliances sourced from live Jumia Uganda listings (August 2026), plus the

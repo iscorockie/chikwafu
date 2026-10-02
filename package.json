@@ -9,7 +9,11 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "build:pages": "tsc -b && BASE=/chikwafu/ npx vite build && cp dist/index.html dist/404.html",
-    "serve": "node serve.mjs"
+    "serve": "node serve.mjs",
+    "server": "node server/index.mjs",
+    "dev:server": "node --watch server/index.mjs",
+    "dev:all": "node scripts/dev-all.mjs",
+    "postinstall": "node -e \"const{execSync}=require('node:child_process');try{execSync('npm install --no-audit --no-fund',{cwd:'server',stdio:'inherit'})}catch{}\" || true"
   },
   "dependencies": {
     "framer-motion": "^13.1.1",
