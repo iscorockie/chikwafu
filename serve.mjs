@@ -52,7 +52,7 @@ createServer(async (req, res) => {
       'Content-Type': TYPES[ext] ?? 'application/octet-stream',
       'Cache-Control': ext === '.html' ? 'no-cache' : immutable ? 'public, max-age=31536000, immutable' : 'public, max-age=3600',
     })
-  } catch (err) {
+  } catch {
     send(res, 500, 'Server error', { 'Content-Type': 'text/plain' })
   }
 }).listen(PORT, '0.0.0.0', () => {
