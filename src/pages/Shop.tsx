@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Search, SlidersHorizontal, Star, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Search, SlidersHorizontal, Star, X } from 'lucide-react'
 import { CATEGORIES, brands, priceBounds, products } from '../lib/catalog'
 import { ProductCard } from '../components/ProductCard'
 import { UGX, UGXshort, cx } from '../lib/format'
@@ -13,6 +13,19 @@ const SORTS = [
   { v: 'rating', l: 'Top rated' },
   { v: 'name', l: 'Name A–Z' },
 ] as const
+
+/**
+ * The catalogue is ~1,800 lines; rendering every match froze phones. Results
+ * are paginated in the URL (?page=) so pages stay shareable and back-button
+ * friendly like every other filter.
+ */
+const PAGE_SIZE = 24
+
+/** Compact page numbers: first, last, current ±1 (gaps render as ellipses). */
+function pagerWindow(page: number, pages: number): number[] {
+  const set = new Set([1, pages, page - 1, page, page + 1])
+  return [...set].filter((n) => n >= 1 && n <= pages).sort((a, b) => a - b)
+}
 
 export default function Shop() {
   const [params, setParams] = useSearchParams()
@@ -27,17 +40,29 @@ export default function Shop() {
   const onlyDeals = params.get('deals') === '1'
   const inStock = params.get('stock') === '1'
   const expressOnly = params.get('express') === '1'
+  const page = Math.max(1, Number(params.get('page') ?? 1) || 1)
 
   const [queryDraft, setQueryDraft] = useState(q)
   useEffect(() => setQueryDraft(q), [q])
 
+  const resultsRef = useRef<HTMLDivElement>(null)
+
+  /** Any filter change resets to page 1 — stale page numbers confuse. */
   const patch = (next: Record<string, string | null>) => {
     const p = new URLSearchParams(params)
     Object.entries(next).forEach(([k, v]) => {
       if (v === null || v === '') p.delete(k)
       else p.set(k, v)
     })
+    if (!('page' in next)) p.delete('page')
     setParams(p, { replace: true })
+  }
+
+  const goToPage = (n: number) => {
+    patch({ page: n > 1 ? String(n) : null })
+    requestAnimationFrame(() =>
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    )
   }
 
   useEffect(() => {
@@ -76,6 +101,10 @@ export default function Shop() {
     }
     return list
   }, [category, brand, sort, q, minRating, maxPrice, onlyDeals, inStock, expressOnly])
+
+  const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const current = Math.min(page, pages)
+  const visible = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
 
   const activeCount = [category, brand, q, minRating ? '1' : '', onlyDeals ? '1' : '', inStock ? '1' : '',
     expressOnly ? '1' : '', maxPrice < priceBounds.max ? '1' : ''].filter(Boolean).length
@@ -255,12 +284,17 @@ export default function Shop() {
           <div className="sticky top-[92px]">{FilterPanel}</div>
         </aside>
 
-        <div>
+        <div ref={resultsRef} className="scroll-mt-28">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <p className="text-[13px] text-text-muted">
               <strong className="text-text">{filtered.length}</strong>{' '}
               {filtered.length === 1 ? 'product' : 'products'}
               {q && <> for “<strong className="text-text">{q}</strong>”</>}
+              {pages > 1 && (
+                <span className="text-text-dim">
+                  {' '}· page {current} of {pages}
+                </span>
+              )}
             </p>
             {maxPrice < priceBounds.max && (
               <p className="text-[12.5px] text-text-dim">Up to {UGX(maxPrice)}</p>
@@ -286,11 +320,51 @@ export default function Shop() {
               className="mt-8 grid grid-cols-2 gap-x-5 gap-y-10 md:grid-cols-3"
             >
               <AnimatePresence mode="popLayout">
-                {filtered.map((p, i) => (
+                {visible.map((p, i) => (
                   <ProductCard key={p.id} product={p} index={i} />
                 ))}
               </AnimatePresence>
             </motion.div>
+          )}
+
+          {pages > 1 && (
+            <nav aria-label="Pagination" className="mt-12 flex items-center justify-center gap-2">
+              <button
+                onClick={() => goToPage(current - 1)}
+                disabled={current === 1}
+                aria-label="Previous page"
+                className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-text-muted transition hover:border-white/35 hover:text-text disabled:pointer-events-none disabled:opacity-35"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              {pagerWindow(current, pages).map((n, i, arr) => (
+                <span key={n} className="flex items-center">
+                  {i > 0 && arr[i - 1] !== n - 1 && (
+                    <span className="px-1 text-[13px] text-text-dim">…</span>
+                  )}
+                  <button
+                    onClick={() => goToPage(n)}
+                    aria-current={n === current ? 'page' : undefined}
+                    className={cx(
+                      'h-10 min-w-[40px] rounded-full px-3 text-[13px] font-bold tabular-nums transition',
+                      n === current
+                        ? 'bg-accent text-bg'
+                        : 'border border-white/15 text-text-muted hover:border-white/35 hover:text-text',
+                    )}
+                  >
+                    {n}
+                  </button>
+                </span>
+              ))}
+              <button
+                onClick={() => goToPage(current + 1)}
+                disabled={current === pages}
+                aria-label="Next page"
+                className="grid h-10 w-10 place-items-center rounded-full border border-white/15 text-text-muted transition hover:border-white/35 hover:text-text disabled:pointer-events-none disabled:opacity-35"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </nav>
           )}
         </div>
       </div>

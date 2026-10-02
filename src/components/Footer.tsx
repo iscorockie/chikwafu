@@ -56,15 +56,24 @@ export function Footer() {
                 Chikwafu Express
               </Link>
             </li>
+            <li>
+              <Link to="/track" className="font-bold text-accent transition hover:text-text">
+                Track My Order
+              </Link>
+            </li>
             {[
               'Delivery & Installation',
               'Warranty Claims',
               'Returns Policy',
               'Spare Parts',
-              'Track My Order',
             ].map((c) => (
               <li key={c}>
-                <a href="#" className="transition hover:text-accent">
+                <a
+                  href={`https://wa.me/256780844098?text=${encodeURIComponent(`Hi Chikwafu, I need help with: ${c}`)}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="transition hover:text-accent"
+                >
                   {c}
                 </a>
               </li>

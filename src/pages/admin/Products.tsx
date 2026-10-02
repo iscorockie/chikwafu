@@ -1,12 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowUpDown, ExternalLink, ImagePlus, Search, X, Zap } from 'lucide-react'
-import { uploadToR2 } from '../../lib/api'
+import { ArrowUpDown, ChevronLeft, ChevronRight, ExternalLink, ImagePlus, Search, X, Zap } from 'lucide-react'
+import { uploadMedia } from '../../lib/api'
 import { CATEGORIES, brands, products } from '../../lib/catalog'
 import { useAdminData } from '../../store/adminData'
 import { UGX, cx } from '../../lib/format'
 
 type SortKey = 'name' | 'price' | 'stock' | 'rating' | 'sold'
+
+const PAGE_SIZE = 50
 
 export default function AdminProducts() {
   const { orders } = useAdminData()
@@ -18,14 +20,17 @@ export default function AdminProducts() {
   const [uploading, setUploading] = useState(false)
   const [uploadedUrl, setUploadedUrl] = useState('')
   const [uploadError, setUploadError] = useState('')
+  const [page, setPage] = useState(1)
 
   const handleImageUpload = async (file?: File) => {
     if (!file) return
     setUploading(true); setUploadError('')
-    try { setUploadedUrl((await uploadToR2(file)).url) }
+    try { setUploadedUrl((await uploadMedia(file)).url) }
     catch (e) { setUploadError(e instanceof Error ? e.message : 'Upload failed') }
     finally { setUploading(false) }
   }
+
+  useEffect(() => { setPage(1) }, [q, cat, brand, sort, asc])
 
   const soldMap = useMemo(() => {
     const m = new Map<string, number>()
@@ -58,6 +63,10 @@ export default function AdminProducts() {
     return list
   }, [q, cat, brand, sort, asc, soldMap])
 
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE))
+  const current = Math.min(page, pages)
+  const visible = rows.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE)
+
   const stockValue = products.reduce((s, p) => s + p.price * p.stock, 0)
 
   const th = (key: SortKey, label: string, align = 'left') => (
@@ -89,7 +98,7 @@ export default function AdminProducts() {
       </header>
 
       <div className="mb-5 rounded-2xl border border-dashed border-accent/40 bg-accent/5 p-4">
-        <div className="flex flex-wrap items-center gap-3"><ImagePlus size={19} className="text-accent" /><div className="flex-1"><p className="text-sm font-bold">Upload product media</p><p className="text-xs text-text-muted">PNG, JPG or WebP · stored securely in Cloudflare R2</p></div><label className="btn-primary cursor-pointer px-4 py-2 text-xs">{uploading ? 'Uploading…' : 'Choose image'}<input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={e => handleImageUpload(e.target.files?.[0])} /></label></div>
+        <div className="flex flex-wrap items-center gap-3"><ImagePlus size={19} className="text-accent" /><div className="flex-1"><p className="text-sm font-bold">Upload product media</p><p className="text-xs text-text-muted">PNG, JPG, WebP or SVG · stored in the API media store (R2 when configured)</p></div><label className="btn-primary cursor-pointer px-4 py-2 text-xs">{uploading ? 'Uploading…' : 'Choose image'}<input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={e => handleImageUpload(e.target.files?.[0])} /></label></div>
         {uploadedUrl && <p className="mt-3 break-all rounded-lg bg-bg px-3 py-2 text-xs text-accent">Uploaded URL: {uploadedUrl}</p>}
         {uploadError && <p className="mt-2 text-xs text-danger">{uploadError}</p>}
       </div>
@@ -139,7 +148,7 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((p) => {
+              {visible.map((p) => {
                 const sold = soldMap.get(p.id) ?? 0
                 return (
                   <tr key={p.id} className="border-b border-white/6 last:border-0 hover:bg-white/4">
@@ -197,6 +206,36 @@ export default function AdminProducts() {
           </table>
         </div>
       </div>
+
+      {pages > 1 && (
+        <nav aria-label="Products pagination" className="mt-5 flex items-center justify-between gap-3">
+          <p className="text-[12.5px] text-text-muted">
+            Showing <strong className="text-text">{(current - 1) * PAGE_SIZE + 1}–{Math.min(current * PAGE_SIZE, rows.length)}</strong> of{' '}
+            <strong className="text-text">{rows.length}</strong>
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(current - 1)}
+              disabled={current === 1}
+              aria-label="Previous page"
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-text-muted transition hover:border-white/35 hover:text-text disabled:opacity-35"
+            >
+              <ChevronLeft size={15} />
+            </button>
+            <span className="text-[12.5px] font-bold tabular-nums text-text-muted">
+              {current} / {pages}
+            </span>
+            <button
+              onClick={() => setPage(current + 1)}
+              disabled={current === pages}
+              aria-label="Next page"
+              className="grid h-9 w-9 place-items-center rounded-full border border-white/15 text-text-muted transition hover:border-white/35 hover:text-text disabled:opacity-35"
+            >
+              <ChevronRight size={15} />
+            </button>
+          </div>
+        </nav>
+      )}
 
       {rows.length === 0 && (
         <div className="mt-4 rounded-2xl border border-white/10 bg-card py-16 text-center">

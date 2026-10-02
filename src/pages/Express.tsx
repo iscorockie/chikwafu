@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, CalendarClock, Check, MapPin, PackageCheck, Zap } from 'lucide-react'
@@ -7,6 +7,9 @@ import { ProductCard } from '../components/ProductCard'
 import { ExpressBadge } from '../components/ExpressBadge'
 
 const ease = [0.22, 1, 0.36, 1] as const
+
+/** How many product cards to reveal per batch on this page. */
+const BATCH = 24
 
 const TIERS = [
   {
@@ -36,6 +39,7 @@ const TIERS = [
 ]
 
 export default function Express() {
+  const [shown, setShown] = useState(BATCH)
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
   }, [])
@@ -201,11 +205,22 @@ export default function Express() {
           </Link>
         </div>
 
+        {/* 538 cards at once stalls phones — reveal in batches instead. */}
         <div className="mt-10 grid grid-cols-2 gap-x-5 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
-          {expressItems.map((p, i) => (
-            <ProductCard key={p.id} product={p} index={i} />
+          {expressItems.slice(0, shown).map((p, i) => (
+            <ProductCard key={p.id} product={p} index={i % BATCH} />
           ))}
         </div>
+        {shown < expressItems.length && (
+          <div className="mt-12 text-center">
+            <button onClick={() => setShown((n) => n + BATCH * 2)} className="btn-ghost">
+              Show more Express items
+              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[11px] tabular-nums">
+                {shown} / {expressItems.length}
+              </span>
+            </button>
+          </div>
+        )}
       </section>
 
       {/* How it works */}

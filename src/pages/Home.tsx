@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -8,6 +9,7 @@ import {
   Truck,
   Wrench,
 } from 'lucide-react'
+import { api, useApiEnabled } from '../lib/api'
 import { collections, products } from '../lib/catalog'
 import { ExpressBadge } from '../components/ExpressBadge'
 import { ProductCard } from '../components/ProductCard'
@@ -416,6 +418,33 @@ function Testimonials() {
 }
 
 function Newsletter() {
+  const apiEnabled = useApiEnabled()
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (done) return
+    if (!apiEnabled) {
+      // Static build (no backend): confirm locally, exactly as before.
+      setDone(true)
+      setMessage('Subscribed ✓ (demo — no server attached)')
+      return
+    }
+    setBusy(true)
+    try {
+      const res = await api.subscribe(email)
+      setDone(true)
+      setMessage(res.message)
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Could not subscribe right now.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <section className="container-x py-20">
       <div className="mx-auto max-w-2xl text-center">
@@ -427,26 +456,28 @@ function Newsletter() {
           One email a month. Stock alerts, clearance on ex-display units, and nothing else.
         </p>
         <form
-          onSubmit={(e) => {
-            e.preventDefault()
-            const f = e.currentTarget
-            const btn = f.querySelector('button')!
-            btn.textContent = 'Subscribed ✓'
-            btn.setAttribute('disabled', 'true')
-          }}
+          onSubmit={submit}
           className="mx-auto mt-7 flex max-w-md flex-col gap-2.5 sm:flex-row"
         >
           <input
             type="email"
             required
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); setMessage('') }}
             placeholder="you@example.com"
             aria-label="Email address"
-            className="input flex-1"
+            disabled={done}
+            className="input flex-1 disabled:opacity-60"
           />
-          <button type="submit" className="btn-primary shrink-0">
-            Subscribe
+          <button type="submit" disabled={busy || done} className="btn-primary shrink-0">
+            {busy ? 'Sending…' : done ? 'Subscribed ✓' : 'Subscribe'}
           </button>
         </form>
+        {message && (
+          <p className={`mt-3 text-[13px] ${done ? 'text-accent' : 'text-danger'}`} role="status">
+            {message}
+          </p>
+        )}
       </div>
     </section>
   )

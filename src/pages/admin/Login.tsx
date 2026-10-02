@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Eye, EyeOff, Loader2, Lock, Server, ShieldAlert } from 'lucide-react'
 import { useAuth } from '../../store/auth'
-import { API_ENABLED, API_URL } from '../../lib/api'
+import { API_URL, useApiEnabled } from '../../lib/api'
 import { Logo } from '../../components/Logo'
 import { cx } from '../../lib/format'
 
 export default function AdminLogin() {
   const signInDemo = useAuth((s) => s.signInDemo)
   const signInApi = useAuth((s) => s.signInApi)
+  const API_ENABLED = useApiEnabled()
 
   const [email, setEmail] = useState('')
   const [pass, setPass] = useState('')
