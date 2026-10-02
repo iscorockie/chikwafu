@@ -34,6 +34,11 @@ jobs:
 
       - name: Build
         run: npm run build:pages
+        env:
+          # Optional repository secret. Set it to the API origin
+          # (https://your-api-host) and the deployed storefront talks to the
+          # real backend. Leave it unset and the site stays in demo mode.
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

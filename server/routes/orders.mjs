@@ -10,8 +10,9 @@
 import { Router } from 'express'
 import { ah, badRequest, notFound, rateLimit, isPhone } from '../lib/http.mjs'
 import { requireAdmin } from '../lib/auth.mjs'
-import { oid } from '../lib/db.mjs'
+import { oid } from '../lib/store.mjs'
 import { getProductById, productCount, slim } from '../lib/catalog.mjs'
+import { sendOrderReceipt, sendStatusEmail, createDeskTicket } from '../lib/zoho.mjs'
 
 /** Mirrors src/store/cart.ts so server and client always agree. */
 export const COUPONS = {
@@ -67,7 +68,7 @@ function trackView(o) {
   }
 }
 
-export function orderRoutes(db) {
+export function orderRoutes(store) {
   const r = Router()
 
   /* ─────────────────────────── public: place an order ─────────────────────────── */
@@ -132,6 +133,10 @@ export function orderRoutes(db) {
         },
         paymentMethod: payment,
         coupon,
+        // Which WhatsApp line took the order chat (the storefront passes the
+        // Admin's presence state). Agent-handled orders get ticketed back to
+        // the Admin once delivered.
+        handledBy: body.handledBy === 'agent' ? 'agent' : 'admin',
         itemsPrice,
         discount,
         shippingPrice,
@@ -143,8 +148,8 @@ export function orderRoutes(db) {
         history: [{ status: 'pending', at: now.toISOString(), by: 'storefront' }],
       }
 
-      db.state.orders.unshift(order)
-      db.save()
+      await store.orders.insert(order)
+      await sendOrderReceipt(order)
       res.status(201).json(order)
     }),
   )
@@ -157,9 +162,7 @@ export function orderRoutes(db) {
       const ref = String(req.query.ref ?? '').trim().toUpperCase()
       const phone = normalizePhone(req.query.phone ?? '')
       if (!ref || !phone) throw badRequest('Enter your order reference and phone number.')
-      const order = db.state.orders.find(
-        (o) => o.ref.toUpperCase() === ref && normalizePhone(o.shippingAddress?.phone ?? '') === phone,
-      )
+      const order = await store.orders.byRefAndPhone(ref, normalizePhone(phone))
       if (!order) throw notFound('We couldn’t find an order with that reference and phone number.')
       res.json(trackView(order))
     }),
@@ -167,29 +170,18 @@ export function orderRoutes(db) {
 
   /* ─────────────────────────────── admin: ledger ─────────────────────────────── */
   r.get('/stats', requireAdmin, ah(async (_req, res) => {
-    const orders = db.state.orders
-    const live = orders.filter((o) => o.status !== 'cancelled')
-    res.json({
-      totalOrders: orders.length,
-      totalRevenue: live.reduce((s, o) => s + o.totalPrice, 0),
-      totalProducts: productCount(),
-      statusCounts: STATUSES.map((s) => ({
-        _id: s,
-        count: orders.filter((o) => o.status === s).length,
-      })),
-    })
+    const stats = await store.orders.stats(STATUSES)
+    res.json({ ...stats, totalProducts: productCount() })
   }))
 
   r.get('/', requireAdmin, ah(async (req, res) => {
     const status = String(req.query.status ?? '')
-    let list = db.state.orders
-    if (status && STATUSES.includes(status)) list = list.filter((o) => o.status === status)
     const limit = Math.min(500, Number(req.query.limit) || 200)
-    res.json(list.slice(0, limit))
+    res.json(await store.orders.list({ status: STATUSES.includes(status) ? status : '', limit }))
   }))
 
   r.get('/:id', requireAdmin, ah(async (req, res) => {
-    const order = db.state.orders.find((o) => o._id === req.params.id || o.ref === req.params.id)
+    const order = await store.orders.byIdOrRef(req.params.id)
     if (!order) throw notFound('Order not found.')
     res.json(order)
   }))
@@ -197,7 +189,7 @@ export function orderRoutes(db) {
   r.put('/:id/status', requireAdmin, ah(async (req, res) => {
     const status = String(req.body?.status ?? '').toLowerCase()
     if (!STATUSES.includes(status)) throw badRequest(`Unknown status “${status}".`)
-    const order = db.state.orders.find((o) => o._id === req.params.id)
+    const order = await store.orders.byIdOrRef(req.params.id)
     if (!order) throw notFound('Order not found.')
 
     order.status = status
@@ -205,7 +197,25 @@ export function orderRoutes(db) {
     order.history = [...(order.history ?? []), {
       status, at: new Date().toISOString(), by: req.user.email ?? 'admin',
     }]
-    db.save()
+
+    // An order the Agent handled while the Admin was offline is ticketed back
+    // to the Admin the moment it is delivered — once, and only once.
+    if (status === 'delivered' && order.handledBy === 'agent' && !order.deskTicketId) {
+      const ticket = await createDeskTicket({
+        order,
+        subject: `Agent-delivered order ${order.ref}`,
+        description: [
+          `Order ${order.ref} was taken by the Agent while the Admin line was offline and has now been delivered.`,
+          `Customer: ${order.shippingAddress.fullName} (${order.shippingAddress.phone})`,
+          `Delivered to: ${order.shippingAddress.address}, ${order.shippingAddress.city} ${order.shippingAddress.region}`,
+          `Total: UGX ${order.totalPrice.toLocaleString('en-UG')}`,
+        ].join('\n'),
+      })
+      if (ticket.ok && ticket.id) order.deskTicketId = ticket.id
+    }
+
+    await store.orders.save(order)
+    await sendStatusEmail(order)
     res.json(order)
   }))
 

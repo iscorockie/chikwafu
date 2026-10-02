@@ -1,44 +1,43 @@
 # Deploying Chikwafu — which provider does which job
 
-Written 2026-10-02 against `main` @ `e94254a`. Every number below was measured in this
-checkout, not estimated.
+Updated 2026-10-02 against `main` @ `e94254a` + the Supabase/Zoho work in this branch.
+Every number below was measured in this checkout, not estimated.
+
+**Chosen stack:** GitHub Pages serves the storefront · Supabase holds the data and the
+product photos · a small Node host runs the Express API · Zoho does all the email and the
+support tickets.
 
 ---
 
 ## 1. What is live right now vs. what is in this build
 
-| | Live site (`https://iscorockie.github.io/chikwafu/`) | This build (`main` @ `e94254a`) |
+| | Live site (`https://iscorockie.github.io/chikwafu/`) | This build |
 | --- | --- | --- |
-| Source | branch `storefront-react` @ `31fc57b` (2026-08-29) | branch `main` @ `e94254a` (2026-10-03) |
-| `server/` (Express API) | **absent** — `git ls-tree origin/storefront-react -- server` returns 0 files | present (12 files) |
-| `/track` | **404** — the page renders "This page has been unplugged." | working page (`src/pages/Track.tsx`) |
+| Source | branch `storefront-react` @ `31fc57b` (2026-08-29) | `main` @ `e94254a` + this branch |
+| `server/` (Express API) | **absent** — `git ls-tree origin/storefront-react -- server` returns 0 files | present |
+| `/track` | **404** — the page renders "This page has been unplugged." | working (`src/pages/Track.tsx`) |
 | `/favorites`, `/admin/tickets` | absent | present |
-| Same-origin API detection, tap-to-open cards, pagination, brand icon fixes | absent | present |
+| API integration, tap-to-open cards, pagination, brand icon fixes | absent | present |
 
 Two reasons the site went stale:
 
-1. `.github/workflows/deploy.yml` only triggers on `branches: [storefront-react]`. Nothing
-   deploys when you merge to `main`.
+1. `.github/workflows/deploy.yml` only triggered on `branches: [storefront-react]`. Nothing
+   deployed when you merged to `main`.
 2. `storefront-react` is an **orphan branch** — `git merge-base origin/main origin/storefront-react`
-   returns nothing (exit 1). It is a hand-synced copy ("Sync main to deploy branch" commits),
+   returns nothing (exit 1). It was a hand-synced copy ("Sync main to deploy branch" commits),
    last synced 2026-08-29, so it silently fell a month behind.
 
-**Fix applied in this branch:** the workflow now triggers on `main`, so merging this branch
-deploys the current build. That orphan-branch pattern should be retired.
+**Fixed in this branch:** the workflow now triggers on `main`, so merging this branch deploys
+the current build. Retire the `storefront-react` branch afterwards.
 
 ---
 
-## 2. The one constraint that decides everything
+## 2. The one constraint that decided the architecture
 
-The storefront is a static SPA — it can go anywhere. The **API cannot**, because it needs a
-writable disk in three places:
-
-* `server/data/db.json` — the whole ledger (`server/lib/db.mjs`)
-* `server/uploads/` — staff media uploads (`server/routes/media.mjs`, multer `diskStorage`)
-* `server/data/.jwt-secret` — staff session secret (`server/lib/env.mjs:resolveJwtSecret`)
-
-`server/lib/env.mjs` calls `mkdirSync()` at import time. Point it at a directory it cannot
-write and it dies before the server starts — reproduced here:
+The storefront is a static SPA — it goes anywhere. The **API could not**, because it needed a
+writable disk in three places: the JSON ledger, staff media uploads, and the JWT secret file.
+`server/lib/env.mjs` calls `mkdirSync()` at import time, so on a read-only filesystem it dies
+before the server starts — reproduced here:
 
 ```
 $ DATA_DIR=/tmp/ro/data node server/index.mjs     # /tmp/ro chmod 555
@@ -48,312 +47,210 @@ Error: EACCES: permission denied, mkdir '/tmp/ro/data'
 
 Serverless filesystems are read-only (Vercel: read-only except an ephemeral 512 MB `/tmp`;
 Cloudflare Workers: no filesystem at all; Supabase Edge Functions: Deno, no `node:fs`).
-**So the API only becomes deployable once those three things move to a managed service.**
-That is the whole migration, and it is small: `db.mjs` is 5 functions and its own header
-comment says so.
 
-What the API does look like once running (verified locally):
+**That is now solved rather than avoided.** `server/lib/store.mjs` is one async data-access
+interface with two backends:
+
+| Backend | Selected by | Data lives in |
+| --- | --- | --- |
+| `json` (default, unchanged) | nothing set | `server/data/db.json` |
+| `postgres` | `DATABASE_URL` | PostgreSQL / Supabase |
+
+`server/lib/env.mjs` no longer hard-fails on a read-only disk, and uploads go to Supabase
+Storage when it is configured. The routes never see the difference.
+
+Verified — `npm run verify:pg` boots a real throwaway PostgreSQL 18.4, applies
+`supabase/schema.sql`, runs the actual Express API against it and asserts 76 checks across
+both backends (order creation with server-side re-pricing, coupon maths, public tracking,
+phone-mismatch rejection, mobile-money collection, admin ledger/status/stats, newsletter
+de-duplication), then **restarts the server** to prove the rows really are in the database:
 
 ```
-$ PORT=5055 node server/index.mjs
-[db] first boot — seeding admin account and demo ledger…
-Chikwafu API listening on http://0.0.0.0:5055
-  · API      /api/health (1797 products loaded)
-  · Store    serving dist/
-$ curl /api/health  → {"status":"ok","name":"chikwafu-api","products":1797,"orders":34,...}
+  PostgreSQL 18.4 on x86_64-pc-linux-gnu ready
+  schema applied: newsletter, order_stats, orders, payments, users
+  ✓ [postgres] boots against DATABASE_URL
+  ✓ [postgres] order survives a restart
+  ✓ [postgres] staff account survives a restart
+  ✓ [postgres] ledger count survives a restart
+  ✓ [json] boots without DATABASE_URL
+PASS — 0 failing check(s)
 ```
+
+Supabase is managed PostgreSQL, so this exercises the identical wire protocol and the
+identical SQL. What it cannot check from here is Supabase's own console: creating the project,
+the `media` bucket, and the pooled connection string.
 
 ---
 
-## 3. Verdict: who does what
+## 3. Who does what
 
-| Provider | Use it for | Skip it for |
+| Provider | Job | Why |
 | --- | --- | --- |
-| **Cloudflare** | ✅ Storefront hosting + CDN + DNS, product images later (R2) | Running the Express API |
-| **Supabase** | ✅ The data layer: orders/users/payments/newsletter (Postgres), uploads (Storage), optional staff auth, realtime dashboard | Hosting the SPA |
-| **Vercel** | ⚖️ Fine alternative to Cloudflare for the SPA — pick **one** of the two | The API, until persistence is off disk |
-| **MongoDB Atlas** | ⚖️ Only if you prefer documents over tables — smallest code change, weakest features | Anything Supabase already covers |
-| **Zoho** | ✅ Email only: ZeptoMail for receipts, Campaigns for the newsletter list | Hosting — nothing in this app runs on Zoho |
-
-**Recommended stack (all free tier):**
-
-```
-Cloudflare Workers static assets   → the SPA (3,202 files, 84 MB) — wrangler.jsonc already correct
-Supabase                           → Postgres + Storage (+ Auth/Realtime later)
-Vercel (optional)                  → only if you prefer its dashboard/preview URLs over Cloudflare
-Zoho ZeptoMail + Campaigns         → order receipts + newsletter
-```
-
-Why this split: Cloudflare is already wired up (`wrangler.jsonc`), gives unlimited bandwidth on
-the free plan — which matters when 79 MB of the deploy is product photos for a Ugandan
-audience — and Workers static assets allow 20,000 files / 25 MiB per file on free, so our
-3,202 files with a 4.5 MB max fit with room to spare. Supabase gives transactions (you need
-"insert order + record payment + mark paid" to be atomic), row-level security for the admin
-routes, and realtime so the dashboard updates without polling — none of which MongoDB M0 does.
-MongoDB Atlas M0 is 512 MB free and its Data API reached EOL in Sept 2025, so from an edge
-runtime you'd need a driver anyway.
+| **GitHub Pages** | Storefront (`https://iscorockie.github.io/chikwafu/`) | Already live, $0, and the workflow now deploys `main`. |
+| **Supabase** | `users`, `orders`, `payments`, `newsletter` + the `media` photo bucket | Transactions for order+payment, RLS for the admin surface, Storage with no disk needed, free tier 500 MB DB / 1 GB files. |
+| **A Node host** | `server/` — the Express API | Express 4 + multer + bcryptjs need Node, not an edge runtime. Render / Railway / Fly / a $5 VPS all work. |
+| **Zoho** | ZeptoMail receipts, Campaigns mailing list, Desk tickets | All three are wired in `server/lib/zoho.mjs` and inert until their keys exist. |
+| **Cloudflare** | Optional, later | DNS + CDN in front of the Pages domain, and R2 for the 79 MB of product photos (zero egress fees). `wrangler.jsonc` is already correct if you ever want to move the SPA there. |
+| **Vercel / MongoDB** | Not used | Vercel would only duplicate Pages; MongoDB Atlas M0 (512 MB, no transactions, Data API EOL Sept 2025) gives less than Supabase for the same money. |
 
 ### Cost & caveats (free tiers, verified 2026)
 
-* Cloudflare Workers free: 20,000 static files/version, 25 MiB/file.
-* Supabase free: 500 MB database, 1 GB storage, 5 GB egress, 500k Edge Function invocations,
-  50k MAU. **Free projects pause after ~7 days of inactivity** — fine for a shop that gets
-  daily traffic, annoying for a staging project.
-* MongoDB Atlas M0: 512 MB, shared RAM, no automated backups.
-* GitHub Pages: unchanged, $0, still a perfectly good home for the static build.
+* **Supabase free** — 500 MB database, 1 GB storage, 5 GB egress, 500k Edge Function
+  invocations, 50k MAU. **Free projects pause after ~7 days of inactivity**: fine for a shop
+  with daily traffic, so keep the staging project separate.
+* **MongoDB Atlas M0** — 512 MB, shared RAM, no automated backups (not used).
+* **Cloudflare Workers free** — 20,000 static files/version, 25 MiB/file. Our `dist/` is
+  3,201 files with a 4.5 MB max, so it fits with room to spare.
+* **GitHub Pages** — 1 GB per site; the current build is 84 MB.
 
 ---
 
-## 4. Phase 0 — ship the current build today (no backend, ~5 minutes)
+## 4. Do this, in order
 
-This gets the tracking page, favourites, tickets UI, pagination and icon fixes live. The app
-auto-detects that no API answers and stays in demo mode (that fallback is already built and is
-what the admin panel's `DataSourceNote` reports).
+### 4.1 Ship the current storefront (about 2 minutes)
 
-**Option A — Cloudflare (recommended).** `wrangler.jsonc` is already configured for static
-assets with SPA fallback:
-
-```bash
-npm ci && npm run build              # plain base '/', 3,201 files → dist/
-npx wrangler login                   # browser auth, once
-npx wrangler deploy                  # → https://chikwafu.<your-subdomain>.workers.dev
-```
-
-Then in the Cloudflare dashboard: **Workers & Pages → chikwafu → Settings → Domains & Routes →
-Custom domain** → `chikwafu.ug` (or `www.`). Cloudflare manages DNS + TLS if the domain is on
-Cloudflare nameservers.
-
-**Option B — Vercel.** `vercel.json` is in this branch (SPA rewrite + long-cache headers):
-
-```bash
-npm i -g vercel && vercel login
-vercel link            # or import the GitHub repo in the dashboard
-vercel --prod
-```
-
-Dashboard: **Project → Settings → Domains** → add the custom domain, follow the CNAME.
-
-**Option C — GitHub Pages (zero new accounts).** Already fixed in this branch — merge to
-`main` and Actions deploys it. Or force it now:
+Merge this branch to `main`. The workflow now triggers on `main`, so Actions builds
+`npm run build:pages` and publishes it. Force it manually with:
 
 ```bash
 gh workflow run "Deploy storefront to GitHub Pages" --ref main
 ```
 
-> `build:pages` sets `BASE=/chikwafu/` and copies `index.html` → `404.html`; verified output:
-> `src="/chikwafu/assets/index-B8hk-gmO.js"`, `dist/404.html` present. Do **not** use that
-> script for Cloudflare/Vercel — those serve from the root, so use `npm run build`.
+Verified build output: base `/chikwafu/`, `dist/404.html` present for client-side routes,
+3,202 files / 84 MB. Delete the `storefront-react` branch once this has run.
 
----
+### 4.2 Create the Supabase project
 
-## 5. Phase 1 — make orders real (the DB swap)
+1. **New project** → note the region closest to your users (e.g. `eu-west-2` London).
+2. **SQL Editor** → paste `supabase/schema.sql` → Run. It is idempotent.
+   (Or `psql "$DATABASE_URL" -f supabase/schema.sql`.)
+3. **Storage → New bucket** → name `media`, tick **Public**.
+4. **Project Settings → Database → Connection string (URI)** → copy the *pooled* string
+   (port 6543). That is `DATABASE_URL`.
+5. **Project Settings → API** → copy the `service_role` key. That is `SUPABASE_SERVICE_KEY`
+   — it bypasses RLS and must never reach the browser.
 
-### 5a. Supabase (recommended)
+### 4.3 Deploy the API
 
-Create a project, then run this in the SQL editor — it mirrors the exact document shapes the
-server writes today:
+Any Node ≥ 22.6 host. Render free tier is the lowest-friction start; note it sleeps after
+inactivity, so the first request after a quiet spell takes ~30 s.
 
-```sql
-create table users (
-  id            text primary key,
-  name          text not null,
-  email         text not null unique,
-  password_hash text not null,
-  role          text not null default 'admin',
-  created_at    timestamptz not null default now()
-);
-
-create table orders (
-  id               text primary key,
-  ref              text not null unique,
-  customer         jsonb not null,          -- { _id, name, email }
-  items            jsonb not null,          -- [{ product, name, image, price, qty, express }]
-  shipping_address jsonb not null,          -- { fullName, phone, address, city, region, country, notes }
-  payment_method   text not null check (payment_method in ('mtn','airtel','card','cod')),
-  coupon           text,
-  items_price      integer not null,
-  discount         integer not null default 0,
-  shipping_price   integer not null default 0,
-  tax_price        integer not null default 0,
-  total_price      integer not null,
-  status           text not null default 'pending'
-                   check (status in ('pending','processing','shipped','delivered','cancelled')),
-  is_paid          boolean not null default false,
-  history          jsonb not null default '[]'::jsonb,
-  created_at       timestamptz not null default now()
-);
-create index orders_created_idx on orders (created_at desc);
-create index orders_status_idx  on orders (status);
-
-create table payments (
-  id            text primary key,
-  "order"       text not null references orders(id),
-  reference     text not null,
-  provider_ref  text,
-  network       text check (network in ('MTN','AIRTEL')),
-  phone         text not null,
-  amount        integer not null,
-  status        text not null,
-  created_at    timestamptz not null default now()
-);
-
-create table newsletter (
-  id  text primary key,
-  email text not null unique,
-  at    timestamptz not null default now()
-);
+```
+Build command     npm install && npm install --prefix server
+Start command     node server/index.mjs
 ```
 
-Storage: **Storage → New bucket → `media`**, make it public (product photos only).
+Environment:
 
-Code changes (all small, all confined to `server/`):
-
-| File | Change |
+| Variable | Value |
 | --- | --- |
-| `server/lib/db.mjs` | Replace the JSON store with `@supabase/supabase-js` (or `pg`). Keep the same call shape (`db.state.*` → async queries) — this is the only substantive edit. |
-| `server/routes/media.mjs` | `multer.memoryStorage()` → `supabase.storage.from('media').upload()`; return the public URL instead of `/uploads/…`. |
-| `server/lib/env.mjs` | Drop the `mkdirSync` calls when `DATABASE_URL`/`SUPABASE_URL` is set; require `JWT_SECRET`. |
-| `server/lib/seed.mjs` | Run once from a laptop (`node server/lib/seed.mjs`), not on boot. |
+| `DATABASE_URL` | the pooled Supabase URI |
+| `PG_SSL` | `true` |
+| `SUPABASE_URL` | `https://<ref>.supabase.co` |
+| `SUPABASE_SERVICE_KEY` | service-role key |
+| `SUPABASE_BUCKET` | `media` |
+| `JWT_SECRET` | 48+ random bytes — **mandatory**, there is no disk to persist a generated one |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | change from the `chikwafu2026` default |
+| `PUBLIC_URL` | the API's own origin |
+| `STORE_URL` | `https://iscorockie.github.io/chikwafu` (links in outgoing email) |
+| `SERVE_STATIC` | `false` — Pages serves the storefront, the API only serves `/api/*` |
+| `ZENGAPAY_MODE` | `sandbox` until real gateway code exists (live mode throws by design) |
 
-Then the API can run anywhere — including **Supabase Edge Functions** (Deno) if you want to drop
-the extra host entirely. Note the one thing that must change first for that: `server/lib/catalog.mjs`
-imports `../../src/lib/catalog.ts` using Node's native type-stripping (works on Node ≥ 22.18 —
-that's how it booted here). Deno and most bundlers won't resolve it the same way, so **precompile
-the catalogue** to `server/data/catalog.json` in the build step and import that instead. Doing
-that also lets you stop shipping the catalogue to the browser — see §7.
+CORS is already open (`app.use(cors())`), which is what a separate Pages origin needs.
 
-### 5b. MongoDB Atlas (if you prefer documents)
+### 4.4 Point the storefront at it
 
-The JSON store maps 1:1 onto collections, so the diff is smaller:
+GitHub → repo **Settings → Secrets and variables → Actions** → new secret
+`VITE_API_URL` = `https://your-api-host`. The workflow already passes it into the build:
+
+```yaml
+- name: Build
+  run: npm run build:pages
+  env:
+    VITE_API_URL: ${{ secrets.VITE_API_URL }}
+```
+
+`VITE_*` is inlined at build time, so the site must be **redeployed** after setting it.
+
+### 4.5 Verify
 
 ```bash
-npm i --prefix server mongodb
+curl https://your-api-host/api/health
+# {"status":"ok","name":"chikwafu-api","products":1797,"orders":0,"store":"postgres",...}
 ```
 
-```js
-// server/lib/db.mjs — shape-preserving replacement
-import { MongoClient } from 'mongodb'
-const client = new MongoClient(process.env.MONGODB_URI)
-await client.connect()
-const db = client.db('chikwafu')
-export const collections = {
-  users: db.collection('users'),
-  orders: db.collection('orders'),
-  payments: db.collection('payments'),
-  newsletter: db.collection('newsletter'),
-}
-```
+`"store":"postgres"` is the signal that the database swap took effect. Then open `/admin` —
+the badge should read **"Live data from your-api-host"** instead of "Demo data".
 
-Call sites change from `db.state.orders.unshift(o); db.save()` to
-`await collections.orders.insertOne(o)`. Add indexes on `orders.ref`, `orders.status`,
-`orders.createdAt`, `newsletter.email`. Uploads still need object storage — Cloudflare R2 or
-Vercel Blob — because no serverless runtime has a disk.
+---
 
-### 5c. Where the API itself runs
+## 5. Zoho — all three are already wired
 
-| Host | Works today? | Notes |
+`server/lib/zoho.mjs`. Each block stays inert without its key, and none of them can fail a
+request: a Zoho outage is logged, never returned to the customer.
+
+| Integration | Fires when | Env |
 | --- | --- | --- |
-| Render / Railway / Fly / a $5 VPS | ✅ as-is | The only option that runs this code unchanged (real disk, `npm run server`). Cheapest path to "real orders this week". |
-| Supabase Edge Functions | after the swap | Fewest moving parts; needs the catalogue precompiled and Express → Deno handler (or Hono). |
-| Vercel serverless | after the swap | Read-only FS, 512 MB ephemeral `/tmp`; needs memory-storage multer + Blob, `JWT_SECRET` set, and the `.ts` import replaced. Long-lived sockets aren't available. |
-| Cloudflare Workers | needs a rewrite | Express 4 + multer + bcryptjs don't run on `workerd`; you'd move to Hono + D1/KV/R2. Don't do this unless you want to. |
+| **ZeptoMail** | `POST /api/orders` (receipt) and every `PUT /api/orders/:id/status` | `ZEPTOMAIL_API_KEY`, `ZEPTOMAIL_FROM`, `ZEPTOMAIL_FROM_NAME` |
+| **Campaigns** | `POST /api/newsletter` — the sign-up is mirrored to the mailing list and `synced_at` is stamped | `ZOHO_CAMPAIGNS_TOKEN`, `ZOHO_CAMPAIGNS_LIST_KEY` |
+| **Desk** | an order with `handledBy: 'agent'` is marked `delivered` — once; `desk_ticket_id` prevents re-filing | `ZOHO_DESK_TOKEN`, `ZOHO_DESK_ORG_ID` |
+
+Setup notes:
+
+1. **ZeptoMail is transactional only** — never send the newsletter through it. Verify the
+   sending domain first (SPF + DKIM records in DNS), or nothing lands in inboxes.
+2. **Campaigns and Desk need self-client OAuth tokens.** The v1.1 APIs reject static API keys.
+   Create an OAuth self-client in the Zoho API Console with the scopes
+   `ZohoCampaigns.contact.write` and `Desk.tickets.CREATE`, generate a grant-token-issued
+   refresh token, and mint an access token.
+3. **`ZOHO_REGION`** selects the data centre for all three hosts: `com` (default), `eu`, `in`,
+   `com.au`, `com.cn`, `ca`, `jp`, `sa`.
+4. The storefront now sends `handledBy` with the order (`src/pages/Checkout.tsx` → the Admin's
+   presence toggle), which is what makes the Desk ticket possible — the server previously had
+   no way to know the Admin was offline.
+
+Still client-side: `/admin/tickets` records *acknowledgements* in `localStorage`
+(`src/store/tickets.ts`), so two staff on two devices see different ticks. The ticket itself
+now exists in Zoho Desk; moving the acknowledgement into the `orders` row is a small follow-up.
 
 ---
 
-## 6. Zoho — where it actually fits
-
-Nothing in this repo touches Zoho today. Three clean insertion points:
-
-1. **Order receipts → ZeptoMail** (transactional; do *not* use it for the newsletter).
-   Hook it in `server/routes/orders.mjs` right after the order is inserted, and in
-   `server/routes/payments.mjs` after a successful collection:
-
-   ```js
-   await fetch('https://api.zeptomail.com/v1.1/email', {
-     method: 'POST',
-     headers: {
-       'Content-Type': 'application/json',
-       Authorization: `Zoho-enczapikey ${process.env.ZEPTOMAIL_API_KEY}`,
-     },
-     body: JSON.stringify({
-       from: { address: 'orders@chikwafu.ug', name: 'Chikwafu Appliances' },
-       to: [{ email_address: { address: order.user.email } }],
-       subject: `Chikwafu order ${order.ref}`,
-       htmlbody: receiptHtml(order),
-     }),
-   })
-   ```
-
-   Prerequisite: the domain must be verified in ZeptoMail (SPF + DKIM records — these go in
-   Cloudflare DNS, which is another reason to put DNS there). Send failures must never fail the
-   order: wrap in try/catch and log.
-
-2. **Newsletter → Zoho Campaigns.** `POST /api/newsletter` currently only appends to the ledger.
-   Keep that (it's your own record) *and* forward to Campaigns so you can actually send:
-
-   ```
-   POST https://campaigns.zoho.com/api/v1.1/json/listsubscribe
-        ?resfmt=JSON&listkey=<LIST_KEY>&contactinfo={"Contact Email":"…"}
-   Authorization: Zoho-oauthtoken <token>
-   ```
-
-   Use a self-client OAuth token (Campaigns API v1.1 requires OAuth, not a static key).
-
-3. **Tickets / CRM (optional).** `/admin/tickets` is client-side only right now —
-   `src/store/tickets.ts` persists acknowledged refs to `localStorage`, so two staff members on
-   two devices see different things. If you want tickets to survive that, they belong in the
-   database from §5, or in Zoho Desk. Don't do both.
-
----
-
-## 7. Two things worth fixing while you're in here
+## 6. Two things worth fixing next
 
 1. **The browser downloads the whole catalogue.** `npm run build` emits
    `dist/assets/index-*.js` at **4.5 MB (948.68 kB gzipped)** because `src/lib/catalog.ts`
    (67,638 lines, 1,797 products) is bundled into the app. On a Ugandan mobile connection that
-   is the single biggest thing standing between a visitor and the shop page. Once the API is
-   live, have the client fetch from `/api/products` and keep only a small seed for demo mode.
-2. **79 MB of product photos ship with every deploy** (`public/ayne` 63 MB / 2,515 files,
-   `public/jbl` 13 MB / 517, `public/jumia` 3.2 MB / 118). They're immutable and cacheable —
-   ideal for **Cloudflare R2** behind a public hostname: zero egress fees, and the app deploy
-   drops to ~5 MB. `server/routes/media.mjs` already flags R2/S3 as the intended destination.
+   is the biggest thing between a visitor and the shop page. The API already serves
+   `/api/products` with the same filter semantics — have the client fetch from it and keep only
+   a small seed for demo mode.
+2. **79 MB of product photos ship with every Pages deploy** (`public/ayne` 63 MB / 2,515 files,
+   `public/jbl` 13 MB / 517, `public/jumia` 3.2 MB / 118). Move them to Supabase Storage or
+   Cloudflare R2 behind a public hostname and the app deploy drops to ~5 MB.
 
 ---
 
-## 8. Environment variables by target
+## 7. Files changed in this branch
 
-**Cloudflare Workers static / Vercel static (storefront only)**
-
-| Var | Value | Where |
-| --- | --- | --- |
-| `VITE_API_URL` | *leave unset* for same-origin; set to `https://api.chikwafu.ug` if the API is a separate host | build-time (must be prefixed `VITE_`) |
-
-**API host (Phase 1)**
-
-| Var | Value |
+| File | What |
 | --- | --- |
-| `PORT`, `HOST` | `5000`, `0.0.0.0` (or the platform's injected `PORT`) |
-| `PUBLIC_URL` | `https://api.chikwafu.ug` — used to build absolute upload URLs |
-| `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` *(or `MONGODB_URI`)* | from the project's API settings — **service key, never the anon key** |
-| `JWT_SECRET` | 48+ random bytes. **Mandatory in production** — without it the secret is written to a file that serverless can't keep |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | change from the `chikwafu2026` default before first boot |
-| `ZENGAPAY_MODE` | `sandbox` until real gateway code exists in `server/routes/payments.mjs` (live mode currently throws by design) |
-| `ZEPTOMAIL_API_KEY`, `ZOHO_CAMPAIGNS_TOKEN`, `ZOHO_CAMPAIGNS_LIST_KEY` | from the Zoho consoles |
-| `SERVE_STATIC` | `false` if the API is a separate host from the SPA |
+| `supabase/schema.sql` | tables, indexes, RLS, `order_stats` view — idempotent |
+| `server/lib/store.mjs` | the data-access layer: `json` and `postgres` backends |
+| `server/lib/oid.mjs` | id helper (was in the deleted `server/lib/db.mjs`) |
+| `server/lib/zoho.mjs` | ZeptoMail, Campaigns, Desk |
+| `server/lib/env.mjs` | new config, no hard failure on a read-only disk |
+| `server/routes/{orders,payments,newsletter,auth,media}.mjs` | async store calls, Zoho hooks, `handledBy` |
+| `server/index.mjs` | `openStore()`, `store` field in `/api/health`, clean shutdown |
+| `scripts/verify-postgres.mjs` | `npm run verify:pg` — 76 checks against real PostgreSQL |
+| `src/lib/api.ts`, `src/pages/Checkout.tsx` | send `handledBy` |
+| `.github/workflows/deploy.yml` | deploy `main`, Node 22, `VITE_API_URL` from a secret |
+| `vercel.json` | unused for now, ready if you move the SPA to Vercel |
 
-Secrets live in the platform's dashboard (Cloudflare: Worker → Settings → Variables, mark
-**Secret**; Vercel: Project → Settings → Environment Variables; Supabase: Project → Settings →
-API). Never in the repo — `.gitignore` already covers `.env` and `server/data/`.
+## 8. Local development is unchanged
 
----
+```bash
+npm run dev:all      # Vite :5173 (proxies /api) + API :5000 on the JSON store
+npm run verify:pg    # 76 checks against a real throwaway PostgreSQL
+```
 
-## 9. Order of operations
-
-1. Merge this branch → the GitHub Pages workflow now deploys `main`, so today's build goes live.
-2. `npx wrangler deploy` (or `vercel --prod`) and put the custom domain on Cloudflare.
-3. Supabase project → run the SQL → create the `media` bucket.
-4. Swap `server/lib/db.mjs` + media storage; precompile the catalogue; set `JWT_SECRET` and the
-   admin credentials; deploy the API; point `VITE_API_URL` at it and redeploy the SPA.
-5. Verify: `curl https://api…/api/health` → `"name":"chikwafu-api"`; the admin panel should
-   flip from "Demo data" to "Live data from …".
-6. ZeptoMail + Campaigns wiring; then move images to R2 and the catalogue out of the bundle.
+Nothing above changes the default experience: with no `DATABASE_URL` the API uses
+`server/data/db.json` exactly as before.

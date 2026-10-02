@@ -186,6 +186,11 @@ export interface NewOrderInput {
   items: { productId: string; qty: number }[]
   coupon?: string | null
   payment: 'mtn' | 'airtel' | 'card' | 'cod'
+  /**
+   * Which WhatsApp line took the order chat, from the Admin's presence toggle.
+   * Agent-handled orders are ticketed back to the Admin once delivered.
+   */
+  handledBy?: 'admin' | 'agent'
   delivery: {
     fullName: string; phone: string; email?: string
     region: string; town?: string; address: string; notes?: string

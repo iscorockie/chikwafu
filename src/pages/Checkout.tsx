@@ -100,6 +100,7 @@ export default function Checkout() {
           coupon,
           payment,
           delivery: d,
+          handledBy: adminOnline ? 'admin' : 'agent',
         })
         if (created.ref) ref = created.ref
         paidTotal = created.totalPrice || paidTotal
