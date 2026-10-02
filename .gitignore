@@ -15,3 +15,6 @@ dist-ssr
 server/data/
 server/uploads/
 server/.env
+
+# Batch-upscaled product photos (generated, resumable script in scripts/)
+upscaled/
