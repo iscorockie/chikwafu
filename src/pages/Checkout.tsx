@@ -84,15 +84,42 @@ export default function Checkout() {
 
   const placeOrder = async () => {
     setPlacing(true)
-    const ref = 'CHK-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+    let ref = 'CHK-' + Math.random().toString(36).slice(2, 8).toUpperCase()
+    let paidTotal = total
+    let orderStatus: 'pending' | 'processing' = 'pending'
+
+    /*
+     * 1 - Create the order on the API when one is reachable. The server
+     * re-prices the basket, so its totals are authoritative for the payment
+     * prompt and the admin ledger. Falls back to the local ledger offline.
+     */
+    if (API_ENABLED) {
+      try {
+        const created = await api.createOrder({
+          items: detailed.map((l) => ({ productId: l.product.id, qty: l.qty })),
+          coupon,
+          payment,
+          delivery: d,
+        })
+        if (created.ref) ref = created.ref
+        paidTotal = created.totalPrice || paidTotal
+      } catch (error) {
+        setErrors({ submit: error instanceof Error ? error.message : 'The order could not be saved. Try again.' })
+        setPlacing(false)
+        return
+      }
+    }
+
+    // 2 - Mobile-money collection runs server-side so gateway keys stay off the browser.
     if (API_ENABLED && (payment === 'mtn' || payment === 'airtel')) {
       try {
         const result = await api.createMobileMoneyCollection({
-          amount: total, currency: 'UGX', phone: momoNumber.replace(/\s/g, ''),
+          amount: paidTotal, currency: 'UGX', phone: momoNumber.replace(/\s/g, ''),
           network: payment === 'mtn' ? 'MTN' : 'AIRTEL', transactionReference: ref,
           description: `Chikwafu order ${ref}`,
         })
         if (result.status && /fail|error|declin/i.test(result.status)) throw new Error(result.message || 'Mobile money payment was declined')
+        orderStatus = 'processing'
       } catch (error) {
         setErrors({ momo: error instanceof Error ? error.message : 'Could not start mobile money payment' })
         setPlacing(false)
@@ -100,6 +127,7 @@ export default function Checkout() {
         return
       }
     }
+
     const placedAt = new Date().toISOString()
     // WhatsApp routing snapshot: if the Admin is offline right now, the order
     // goes to the "Chikwafu Orders" group chat and the Agent joins it —
@@ -113,9 +141,10 @@ export default function Checkout() {
     }
     sessionStorage.setItem('chikwafu-last-order', JSON.stringify(order))
 
-    // Push the real order into the admin ledger so the dashboard reflects it.
+    // Mirror into the local ledger so the confirmation page and admin keep
+    // working even when the API is unreachable.
     addOrder({
-      ref, placedAt, status: 'pending', handledBy,
+      ref, placedAt, status: orderStatus, handledBy,
       customer: { name: d.fullName, phone: d.phone, email: d.email || undefined },
       destination: { region: d.region, town: d.town, address: d.address },
       payment,
@@ -402,6 +431,12 @@ export default function Checkout() {
                       ))}
                     </ul>
                   </div>
+
+                  {errors.submit && (
+                    <p className="flex items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-[13px] font-medium text-danger">
+                      <Lock size={14} className="shrink-0" /> {errors.submit}
+                    </p>
+                  )}
 
                   <div className="flex flex-wrap gap-3">
                     <button onClick={() => setStep(1)} className="btn-ghost" disabled={placing}>

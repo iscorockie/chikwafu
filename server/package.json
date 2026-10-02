@@ -1,0 +1,21 @@
+{
+  "name": "chikwafu-server",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Chikwafu Express API — orders, auth, products, payments and media for the Chikwafu storefront.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "node --watch index.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.1"
+  }
+}

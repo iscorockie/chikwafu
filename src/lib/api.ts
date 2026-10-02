@@ -1,21 +1,78 @@
 /**
  * Client for the Chikwafu Express API (repo root `/server`).
  *
- * Contract taken from server/routes + server/controllers on `main`:
- *   POST /api/auth/login        -> { token, ...user }        (public)
- *   GET  /api/auth/me           -> user                      (Bearer)
- *   GET  /api/orders            -> Order[]                   (Bearer, admin)
- *   GET  /api/orders/stats      -> dashboard stats           (Bearer, admin)
- *   PUT  /api/orders/:id/status -> Order                     (Bearer, admin)
- *   GET  /api/products          -> products                  (public)
+ * Contract implemented by server/routes:
+ *   POST /api/auth/login              -> { token, ...user }        (public)
+ *   GET  /api/auth/me                 -> user                      (Bearer)
+ *   GET  /api/products                -> paginated product list    (public)
+ *   GET  /api/products/facets         -> categories/brands/bounds  (public)
+ *   GET  /api/products/:slug          -> full product              (public)
+ *   POST /api/orders                  -> Order                     (public, re-priced server-side)
+ *   GET  /api/orders/track            -> tracking view             (public, ref + phone)
+ *   GET  /api/orders                  -> Order[]                   (Bearer, admin)
+ *   GET  /api/orders/stats            -> dashboard stats           (Bearer, admin)
+ *   PUT  /api/orders/:id/status       -> Order                     (Bearer, admin)
+ *   POST /api/payments/zengapay/...   -> collection result         (public, rate-limited)
+ *   POST /api/media/upload            -> { url }                   (Bearer, admin)
+ *   POST /api/newsletter              -> { ok, message }           (public)
  *
- * The base URL comes from VITE_API_URL. When it is unset the app runs in
- * demo mode against the local seeded store — the storefront is deployed to
- * GitHub Pages, which is static, so there is no API to talk to there.
+ * Base URL resolution:
+ *   1. VITE_API_URL when set (explicit cross-origin deployment), else
+ *   2. same origin — the Express server also hosts the built storefront, so a
+ *      single deployment needs no configuration;
+ *   3. if neither answers on /api/health the app stays in demo mode against the
+ *      local seeded store, which is what the static GitHub Pages build does.
  */
 
-export const API_URL: string = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
-export const API_ENABLED = API_URL.length > 0
+import { useSyncExternalStore } from 'react'
+
+const CONFIGURED: string = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+
+export let API_URL: string = CONFIGURED
+export let API_ENABLED: boolean = CONFIGURED.length > 0
+
+const listeners = new Set<() => void>()
+const notify = () => listeners.forEach((l) => l())
+const subscribeApiState = (fn: () => void) => {
+  listeners.add(fn)
+  return () => { listeners.delete(fn) }
+}
+
+/** Reactive view of API_ENABLED — flips once same-origin detection resolves. */
+export function useApiEnabled(): boolean {
+  return useSyncExternalStore(
+    subscribeApiState,
+    () => API_ENABLED,
+    () => CONFIGURED.length > 0,
+  )
+}
+
+/**
+ * Resolves once, early in boot (see main.tsx). Same-origin detection lets the
+ * Express-hosted build go live automatically while GitHub Pages keeps demo mode.
+ */
+export const apiReady: Promise<boolean> = API_ENABLED
+  ? Promise.resolve(true)
+  : detectSameOriginApi()
+
+async function detectSameOriginApi(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/health', {
+      signal: AbortSignal.timeout(2500),
+      headers: { Accept: 'application/json' },
+    })
+    if (!res.ok) return false
+    const body = (await res.json()) as { name?: string }
+    if (body?.name !== 'chikwafu-api') return false
+    API_URL = ''
+    API_ENABLED = true
+    notify()
+    return true
+  } catch {
+    notify()
+    return false
+  }
+}
 
 const TOKEN_KEY = 'chikwafu-api-token'
 
@@ -79,18 +136,22 @@ export interface ApiOrderItem {
   image: string
   price: number
   qty: number
+  express?: boolean
 }
 
 export interface ApiOrder {
   _id: string
-  user?: { _id: string; name: string; email: string } | string
+  ref?: string
+  user?: { _id: string; name: string; email?: string } | string
   items: ApiOrderItem[]
   shippingAddress?: {
     fullName?: string; phone?: string; address?: string
     city?: string; region?: string; country?: string
   }
   paymentMethod?: string
+  coupon?: string | null
   itemsPrice: number
+  discount?: number
   shippingPrice: number
   taxPrice: number
   totalPrice: number
@@ -106,9 +167,34 @@ export interface ApiStats {
   statusCounts: { _id: string; count: number }[]
 }
 
+export interface TrackView {
+  ref: string
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
+  placedAt: string
+  paymentMethod: string
+  isPaid: boolean
+  region: string
+  town: string
+  itemCount: number
+  total: number
+  express: boolean
+  eta: string | null
+  timeline: { key: string; label: string; at: string | null; done: boolean }[]
+}
+
+export interface NewOrderInput {
+  items: { productId: string; qty: number }[]
+  coupon?: string | null
+  payment: 'mtn' | 'airtel' | 'card' | 'cod'
+  delivery: {
+    fullName: string; phone: string; email?: string
+    region: string; town?: string; address: string; notes?: string
+  }
+}
+
 /* ─────────────────────────── endpoints ─────────────────────────── */
 
-export const uploadToR2 = async (file: File): Promise<{ url: string }> => {
+export const uploadMedia = async (file: File): Promise<{ url: string }> => {
   if (!API_ENABLED) throw new ApiError(0, 'Configure VITE_API_URL to upload media')
   const form = new FormData()
   form.append('file', file)
@@ -137,6 +223,19 @@ export const api = {
     request<ApiOrder>(`/api/orders/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
+    }),
+
+  /** Server-side order creation with server-computed pricing. */
+  createOrder: (input: NewOrderInput) =>
+    request<ApiOrder>('/api/orders', { method: 'POST', body: JSON.stringify(input) }),
+
+  trackOrder: (ref: string, phone: string) =>
+    request<TrackView>(`/api/orders/track?ref=${encodeURIComponent(ref)}&phone=${encodeURIComponent(phone)}`),
+
+  subscribe: (email: string) =>
+    request<{ ok: boolean; alreadySubscribed?: boolean; message: string }>('/api/newsletter', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     }),
 
   /** Server-side ZengaPay collection. API keys must never be exposed in the browser. */

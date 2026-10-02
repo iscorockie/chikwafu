@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { API_ENABLED, ApiError, api, type ApiOrder } from '../lib/api'
+import { API_ENABLED, apiReady, ApiError, api, type ApiOrder } from '../lib/api'
 import { useOrders, type Order, type OrderStatus } from './orders'
 
 /**
@@ -20,7 +20,7 @@ function adapt(o: ApiOrder): Order {
   const ship = o.shippingAddress ?? {}
   const user = typeof o.user === 'object' && o.user ? o.user : null
   return {
-    ref: '#' + o._id.slice(-6).toUpperCase(),
+    ref: o.ref ?? '#' + o._id.slice(-6).toUpperCase(),
     placedAt: o.createdAt,
     status: STATUS_MAP[String(o.status).toLowerCase()] ?? 'pending',
     customer: {
@@ -66,7 +66,10 @@ export function useAdminData(): AdminData {
   const [error, setError] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    if (!API_ENABLED) return
+    // Wait for same-origin detection so an Express-hosted build never flashes
+    // demo data before the live ledger arrives.
+    const enabled = API_ENABLED || (await apiReady)
+    if (!enabled) return
     setLoading(true)
     setError(null)
     try {

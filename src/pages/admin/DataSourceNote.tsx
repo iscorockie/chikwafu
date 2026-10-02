@@ -44,7 +44,7 @@ export function DataSourceNote({
     return (
       <p className="mt-3 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3.5 py-1.5 text-[12px] font-bold text-accent">
         <Server size={13} />
-        Live data from {API_URL.replace(/^https?:\/\//, '')}
+        Live data from {API_URL.replace(/^https?:\/\//, '') || 'this origin'}
       </p>
     )
   }

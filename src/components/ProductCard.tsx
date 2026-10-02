@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Heart, ShoppingBag } from 'lucide-react'
+import type { MouseEvent } from 'react'
 import type { Product } from '../lib/types'
 import { UGX, cx } from '../lib/format'
 import { Stars } from './Stars'
@@ -12,10 +13,25 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   const add = useCart((s) => s.add)
   const wishIds = useWishlist((s) => s.ids)
   const toggleWish = useWishlist((s) => s.toggle)
+  const navigate = useNavigate()
   const wished = wishIds.includes(product.id)
   const off = product.compareAt
     ? Math.round((1 - product.price / product.compareAt) * 100)
     : 0
+
+  /**
+   * The whole card is a tap target: on phones (and for mouse users clicking
+   * anywhere that isn't a control) a tap opens the product's own page.
+   * Real links/buttons keep their own behaviour via the closest() guard.
+   */
+  const onCardTap = (e: MouseEvent<HTMLElement>) => {
+    if (e.defaultPrevented || e.button !== 0) return
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+    const target = e.target as HTMLElement
+    if (target.closest('a,button,input,select,label,textarea,[role="button"]')) return
+    e.preventDefault()
+    navigate(`/product/${product.slug}`)
+  }
 
   return (
     <motion.article
@@ -23,10 +39,11 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.55, delay: Math.min(index * 0.05, 0.3), ease: [0.22, 1, 0.36, 1] }}
-      className="group relative flex flex-col"
+      onClick={onCardTap}
+      className="group relative flex cursor-pointer flex-col select-none"
     >
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white">
-        <Link to={`/product/${product.slug}`} aria-label={product.name}>
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white transition-shadow duration-300 group-hover:shadow-lift group-active:scale-[0.985]">
+        <Link to={`/product/${product.slug}`} aria-label={product.name} tabIndex={-1}>
           <div className="aspect-square overflow-hidden">
             <img
               src={product.image}

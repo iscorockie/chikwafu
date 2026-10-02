@@ -10,3 +10,11 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+
+# Chikwafu API runtime state (JSON ledger, staff uploads, dev secret)
+server/data/
+server/uploads/
+server/.env
+
+# Batch-upscaled product photos (generated, resumable script in scripts/)
+upscaled/

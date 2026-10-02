@@ -10,6 +10,15 @@ export const cx = (...parts: (string | false | null | undefined)[]) =>
 export const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
 
-/** Resolve a public-folder asset against Vite's base URL (needed for GitHub Pages subpaths). */
+/**
+ * Resolve a public-folder asset against Vite's base URL (needed for GitHub Pages subpaths).
+ *
+ * `import.meta.env` only exists inside a Vite bundle. The catalogue is also
+ * imported directly by the Express API in `server/` (plain Node), where it is
+ * undefined — fall back to '/' so both worlds agree on absolute asset URLs.
+ */
+const BASE_URL: string =
+  (import.meta as { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/'
+
 export const asset = (path: string) =>
-  `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`.replace(/([^:]\/)\/+/g, '$1')
+  `${BASE_URL}${path.replace(/^\//, '')}`.replace(/([^:]\/)\/+/g, '$1')

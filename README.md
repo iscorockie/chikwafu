@@ -22,10 +22,31 @@ electric home appliances. Built with React, TypeScript, Vite and Tailwind CSS.
   Ugandan district selection, and dynamic delivery pricing.
 - **Ugandan market fit** — UGX pricing throughout, MTN Mobile Money / Airtel Money / card /
   cash-on-delivery, district-based delivery fees, and locally-grounded copy and reviews.
+- **Order tracking** — customers enter their reference + phone on `/track` and get a live
+  status timeline with ETA, straight from the API (or the local ledger in demo mode).
 - **Persistent state** — cart and wishlist survive reloads via `zustand/persist` (localStorage).
-- **Fully responsive** — bottom-sheet filters and a slide-in nav drawer on mobile.
+- **Fully responsive** — bottom-sheet filters and a slide-in nav drawer on mobile. Every
+  product card is a single tap target: tapping anywhere opens the product page.
+- **Paginated catalogue** — shop results and the admin inventory table page through
+  ~1,800 lines instead of rendering them all at once.
 - **Accessible** — semantic landmarks, ARIA labels, keyboard-dismissable overlays,
   visible focus rings and a `prefers-reduced-motion` fallback.
+
+## Backend
+
+`server/` is an Express API (Node ≥ 22.6) that also hosts the built storefront on one
+port: staff JWT auth, the order ledger with **server-side pricing**, ZengaPay
+mobile-money collections, media uploads, newsletter sign-ups and public order tracking.
+See [server/README.md](server/README.md) for the endpoint table.
+
+```bash
+npm run dev:all     # Vite :5173 (proxies /api) + API :5000
+npm run server      # API + built storefront on :5000
+```
+
+The storefront auto-detects the API: with `VITE_API_URL` unset it probes the same origin,
+so an Express-hosted build runs live and the static GitHub Pages build transparently falls
+back to seeded demo data (the admin dashboard says which mode you are in).
 
 ## Tech stack
 
@@ -38,14 +59,17 @@ electric home appliances. Built with React, TypeScript, Vite and Tailwind CSS.
 | Animation | Framer Motion |
 | Icons | Lucide |
 | Routing | React Router 7 |
+| Backend | Express 4 (JSON-file store, JWT, bcrypt, multer) |
 
 ## Getting started
 
 ```bash
 npm install
-npm run dev      # http://localhost:5173
+npm run dev      # http://localhost:5173 (UI only; /api proxied to :5000 if running)
+npm run dev:all  # UI + backend together
 npm run build    # production bundle to dist/
-npm run preview  # serve the production build
+npm run server   # backend + serves dist/ on http://localhost:5000
+npm run preview  # serve the production build (Vite)
 ```
 
 ## Catalog
@@ -71,17 +95,22 @@ Kampala/Wakiso/Mukono and UGX 45,000 upcountry.
 ```
 src/
 ├── components/   Header, Footer, CartDrawer, ProductCard, Stars, Logo
-├── pages/        Home, Shop, ProductDetail, Checkout, OrderConfirmed, NotFound
-├── store/        cart.ts (persisted), wishlist.ts (persisted)
-└── lib/          catalog.ts (seed data), types.ts, format.ts
+├── pages/        Home, Shop, ProductDetail, Checkout, Track, OrderConfirmed, NotFound
+│   └── admin/    Login, Dashboard, Orders, Products
+├── store/        cart.ts (persisted), wishlist.ts (persisted), orders.ts, auth.ts
+└── lib/          catalog.ts (seed data), api.ts (API client), types.ts, format.ts
+server/
+├── index.mjs     Express app: /api/* + static dist/ on one port
+├── routes/       auth, products, orders, payments, media, newsletter
+└── lib/          env, db (JSON store), catalog loader, auth middleware, seed
 ```
 
 ## Note
 
-This is a demonstration storefront. Checkout simulates payment authorisation — no gateway is
-called and no real transaction occurs. To go live, wire the `placeOrder` handler in
-`src/pages/Checkout.tsx` to a payment provider such as Flutterwave, Pesapal or MTN MoMo's
-Collections API.
+Checkout creates the order on the API and initiates a ZengaPay mobile-money collection
+server-side; in the default `sandbox` mode the prompt is simulated and no real transaction
+occurs. The marked block in `server/routes/payments.mjs` is where the live gateway call
+goes. With no API reachable (e.g. GitHub Pages) checkout falls back to the local ledger.
 
 ## Licence
 
