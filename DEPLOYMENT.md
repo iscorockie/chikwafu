@@ -223,7 +223,13 @@ now exists in Zoho Desk; moving the acknowledgement into the `orders` row is a s
    is the biggest thing between a visitor and the shop page. The API already serves
    `/api/products` with the same filter semantics — have the client fetch from it and keep only
    a small seed for demo mode.
-2. **79 MB of product photos ship with every Pages deploy** (`public/ayne` 63 MB / 2,515 files,
+2. **No card payment exists, so nothing advertises one.** The footer and the
+   announcement bar used to show a Visa badge and "card payment"; `PAYMENTS` is
+   MTN MoMo, Airtel Money and cash on delivery only, and there is no gateway in
+   the API. Those claims were removed rather than implemented. Adding cards means
+   integrating a PSP (Flutterwave, DPO or Pesapal) — a backend change, not a copy
+   change.
+3. **79 MB of product photos ship with every Pages deploy** (`public/ayne` 63 MB / 2,515 files,
    `public/jbl` 13 MB / 517, `public/jumia` 3.2 MB / 118). Move them to Supabase Storage or
    Cloudflare R2 behind a public hostname and the app deploy drops to ~5 MB.
 
@@ -241,16 +247,60 @@ now exists in Zoho Desk; moving the acknowledgement into the `orders` row is a s
 | `server/routes/{orders,payments,newsletter,auth,media}.mjs` | async store calls, Zoho hooks, `handledBy` |
 | `server/index.mjs` | `openStore()`, `store` field in `/api/health`, clean shutdown |
 | `scripts/verify-postgres.mjs` | `npm run verify:pg` — 76 checks against real PostgreSQL |
+| `scripts/verify-store.mjs` | `npm run verify:store` — 15 checks against the real cart store |
+| `scripts/verify-ui.mjs` | `npm run verify:ui` — 16 checks against the rendered DOM |
+| `scripts/lib/{ts-resolve,register-ts}.mjs` | lets the Node checks import `src/` as shipped |
 | `src/lib/api.ts`, `src/pages/Checkout.tsx` | send `handledBy` |
 | `.github/workflows/deploy.yml` | deploy `main`, Node 22, `VITE_API_URL` from a secret |
 | `vercel.json` | unused for now, ready if you move the SPA to Vercel |
 
-## 8. Local development is unchanged
+## 8. UI/UX audit
+
+A code-level audit of the storefront found 15 defects. All are fixed; the last
+three columns are what `npm run verify:store` / `verify:ui` now assert.
+
+| Defect | Where | Fix |
+| --- | --- | --- |
+| A sold-out product could be added: a qty-0 line opened a cart that totalled UGX 0 and was then rejected with "Invalid quantity" | `store/cart.ts`, 518 of 1,797 products | `add()` refuses `stock <= 0`; `useCartDetails` clamps to stock and drops empty lines |
+| "Only 0 left" and a live Add to cart button on sold-out cards | `ProductCard.tsx` | "Out of stock" pill, greyed photo, disabled CTA |
+| Same on the product page, plus a dead ternary (`stock > 10 ? 'bg-accent' : 'bg-accent'`) | `ProductDetail.tsx` | disabled stepper and CTA; real three-state stock line |
+| **CTA text was `#f0f0f5` on `#00e5a0` — 1.45:1**, illegible | `ProductCard.tsx` | `text-bg` on accent — **11.96:1** |
+| **`text.dim #555568` was 2.71:1 on the page, 2.32:1 on a card** | `tailwind.config.js` | `dim #85859c`, `muted #9a9ab0` — both ≥ 4.7:1 on both surfaces, ramp preserved |
+| All six "Shop…" nav items lit their underline at once on any `/shop` page | `Header.tsx` | match pathname **and** query string |
+| **`aria-current` fell back to NavLink's prefix match, so 6 links announced "current page"** | `Header.tsx` | always emit `page` or `false` |
+| Hamburger had no `aria-expanded` / `aria-controls`; drawer was not a dialog and Escape did nothing | `Header.tsx` | wired to `#mobile-menu`, `role="dialog" aria-modal`, Escape closes |
+| Mobile filter sheet had no Escape, no scroll lock, no dialog role | `Shop.tsx` | all three added |
+| **Checkout validation errors were green** (`text-accent`) | `Checkout.tsx` | `text-danger`, `role="alert"` |
+| Checkout fields had no `htmlFor`/`id`, no `aria-invalid` | `Checkout.tsx` | labelled, wired, `autoComplete` added |
+| Cash-on-delivery orders confirmed as "Payment confirmed" / "Total paid" | `OrderConfirmed.tsx` | `paymentState()` → confirmed / pay the rider / pending |
+| "We have sent an SMS" — no SMS is sent | `OrderConfirmed.tsx`, `Track.tsx` | replaced with a real greeting and a tracking CTA |
+| Every unpaid order tracked as "Payment on delivery" | `Track.tsx` | paid / cash on delivery / pending, `aria-live` |
+| A Visa badge for a gateway that does not exist | `Footer.tsx` | "Cash on delivery" |
+
+Contrast figures are WCAG relative luminance computed from the hexes in
+`tailwind.config.js`. **Nothing was verified in a browser** — there is none in
+this environment — so layout, animation and the real Pages subpath are untested
+by eye.
+
+## 9. Local development is unchanged
 
 ```bash
 npm run dev:all      # Vite :5173 (proxies /api) + API :5000 on the JSON store
 npm run verify:pg    # 76 checks against a real throwaway PostgreSQL
+npm run verify:store # 15 checks against the real cart store
+npm run verify:ui    # 16 checks against the rendered DOM
 ```
+
+`verify:pg`, `verify:store` and `verify:ui` use dev-only dependencies that are
+deliberately not in `package.json`, so a normal `npm install` stays light:
+
+```bash
+npm i --no-save embedded-postgres            # verify:pg
+npm i --no-save jsdom                        # verify:store and verify:ui
+npm i --no-save esbuild jsdom                # verify:ui (JSX)
+```
+
+Each script says what it is missing and exits with code 2 instead of failing.
 
 Nothing above changes the default experience: with no `DATABASE_URL` the API uses
 `server/data/db.json` exactly as before.

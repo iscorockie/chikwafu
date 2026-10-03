@@ -72,7 +72,10 @@ export default function AdminProducts() {
   const th = (key: SortKey, label: string, align = 'left') => (
     <th className={cx('px-5 py-3.5', align === 'right' && 'text-right')}>
       <button
-        onClick={() => { sort === key ? setAsc(!asc) : (setSort(key), setAsc(false)) }}
+        onClick={() => {
+          if (sort === key) setAsc(!asc)
+          else { setSort(key); setAsc(false) }
+        }}
         className={cx(
           'inline-flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.14em] transition',
           sort === key ? 'text-accent' : 'text-text-dim hover:text-text',

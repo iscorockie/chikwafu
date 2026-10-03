@@ -45,6 +45,19 @@ export default function Shop() {
   const [queryDraft, setQueryDraft] = useState(q)
   useEffect(() => setQueryDraft(q), [q])
 
+  /* The filter sheet behaved unlike the cart drawer: Escape did nothing and the
+     page scrolled behind it. Match the rest of the app. */
+  useEffect(() => {
+    if (!filtersOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setFiltersOpen(false)
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = ''
+    }
+  }, [filtersOpen])
+
   const resultsRef = useRef<HTMLDivElement>(null)
 
   /** Any filter change resets to page 1 — stale page numbers confuse. */
@@ -380,6 +393,9 @@ export default function Shop() {
             <motion.div
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 32, stiffness: 320 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Product filters"
               className="fixed inset-x-0 bottom-0 z-[90] max-h-[86vh] overflow-y-auto rounded-t-[26px] bg-bg p-6 pb-10 shadow-lift lg:hidden"
             >
               <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-bg-2/15" />

@@ -37,11 +37,16 @@ export const useCart = create<CartState>()(
       coupon: null,
       add: (productId, qty = 1) => {
         const p = products.find((x) => x.id === productId)
-        if (!p) return
+        // 518 catalogue lines are out of stock. Clamping to p.stock used to
+        // push a qty-0 line, which opened a cart that looked full but totalled
+        // zero and was then rejected by the API — so refuse instead.
+        if (!p || p.stock <= 0) return
         const lines = [...get().lines]
         const i = lines.findIndex((l) => l.productId === productId)
-        if (i > -1) lines[i] = { ...lines[i], qty: Math.min(lines[i].qty + qty, p.stock) }
-        else lines.push({ productId, qty: Math.min(qty, p.stock) })
+        const next = Math.min(i > -1 ? lines[i].qty + qty : qty, p.stock)
+        if (next < 1) return
+        if (i > -1) lines[i] = { ...lines[i], qty: next }
+        else lines.push({ productId, qty: next })
         set({ lines, isOpen: true, lastAdded: productId })
         setTimeout(() => {
           if (get().lastAdded === productId) set({ lastAdded: null })
@@ -50,7 +55,7 @@ export const useCart = create<CartState>()(
       remove: (productId) => set({ lines: get().lines.filter((l) => l.productId !== productId) }),
       setQty: (productId, qty) => {
         const p = products.find((x) => x.id === productId)
-        const max = p?.stock ?? 99
+        const max = Math.max(0, p?.stock ?? 99)
         set({
           lines:
             qty <= 0
@@ -93,8 +98,13 @@ export const useCartDetails = () => {
 
   const detailed: DetailedLine[] = lines
     .map((l) => {
+      // Drop lines whose product has since gone out of stock, and any stale
+      // qty-0 line persisted by an older build, so totals can never read zero
+      // while the cart looks occupied.
       const product = products.find((p) => p.id === l.productId)
-      return product ? { product, qty: l.qty, lineTotal: product.price * l.qty } : null
+      if (!product) return null
+      const qty = Math.min(l.qty, product.stock)
+      return qty > 0 ? { product, qty, lineTotal: product.price * qty } : null
     })
     .filter(Boolean) as DetailedLine[]
 

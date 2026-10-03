@@ -110,7 +110,6 @@ async function exercise(label) {
   /* place an order — the server must re-price it */
   const qty = 2
   const expectedSubtotal = product.price * qty
-  const expectedTotal = expectedSubtotal + 15000 // Kampala delivery, below the free threshold
   const placed = await api('/api/orders', {
     method: 'POST',
     body: {

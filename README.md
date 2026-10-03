@@ -53,7 +53,10 @@ Orders, payments, staff accounts and newsletter sign-ups live in
 `DATABASE_URL` is set — apply [`supabase/schema.sql`](supabase/schema.sql) once and the same
 API runs on a host with no disk. Product photos go to Supabase Storage when it is configured.
 `npm run verify:pg` boots a real throwaway PostgreSQL server and checks both backends end to
-end. Outgoing mail (ZeptoMail), the mailing list (Campaigns) and agent-handled delivery
+end. On the client side, `npm run verify:store` and `npm run verify:ui` run the real cart store
+and the real components in a jsdom window — 31 checks covering the sold-out, nav-highlight and
+cart-maths paths. All three use dev-only packages, installed with `npm i --no-save`; see
+[DEPLOYMENT.md](DEPLOYMENT.md) §9. Outgoing mail (ZeptoMail), the mailing list (Campaigns) and agent-handled delivery
 tickets (Desk) are wired in `server/lib/zoho.mjs` and stay inert until their keys are set.
 
 Deployment: which provider does which job, and the exact configuration for each, is in
