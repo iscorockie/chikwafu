@@ -97,7 +97,10 @@ the `media` bucket, and the pooled connection string.
 
 * **Supabase free** — 500 MB database, 1 GB storage, 5 GB egress, 500k Edge Function
   invocations, 50k MAU. **Free projects pause after ~7 days of inactivity**: fine for a shop
-  with daily traffic, so keep the staging project separate.
+  with daily traffic, so keep the staging project separate. **The free plan allows only
+  2 active projects per member**, counted across every organisation where that member is
+  admin or owner — creating another organisation does not add slots (see §4.2 if the
+  "New project" button refuses you).
 * **MongoDB Atlas M0** — 512 MB, shared RAM, no automated backups (not used).
 * **Cloudflare Workers free** — 20,000 static files/version, 25 MiB/file. Our `dist/` is
   3,201 files with a 4.5 MB max, so it fits with room to spare.
@@ -129,6 +132,27 @@ Verified build output: base `/chikwafu/`, `dist/404.html` present for client-sid
    (port 6543). That is `DATABASE_URL`.
 5. **Project Settings → API** → copy the `service_role` key. That is `SUPABASE_SERVICE_KEY`
    — it bypasses RLS and must never reach the browser.
+
+**If "Create new project" is refused — you have hit the free-plan cap.** The dashboard
+message names the member and the rule: 2 *active* free projects, counted across all
+organisations where that member is admin or owner, so a brand-new organisation does not
+help. The dashboard's own remedies are "delete, pause, or upgrade", in order of pain:
+
+1. **Pause** a project you are not using right now. Pausing frees the slot immediately,
+   keeps the data, and the project can be resumed for up to a year (Dashboard → the paused
+   project → *Resume project*). Find it in the project row's ⋯ menu on the dashboard home,
+   or on the project's *Settings → General* page.
+2. **Delete** a throwaway or test project (*Settings → General → Remove project*).
+   Permanent, and frees the slot.
+3. **Upgrade** one organisation to Pro if both existing projects are production.
+
+**Or skip Supabase entirely — the schema is plain Postgres.** `supabase/schema.sql` uses no
+extensions and no `auth.` schema; `npm run verify:pg` applies it to a vanilla
+PostgreSQL 18.4 and passes all 76 checks. Any managed Postgres (Neon's free tier included)
+can host it: `psql "$DATABASE_URL" -f supabase/schema.sql`, set `PG_SSL=true`, and omit the
+three `SUPABASE_*` variables. Without `SUPABASE_URL` media uploads fall back to the API
+host's disk, so choose a host with a writable disk. You lose only Supabase Storage's photo
+CDN — product photos already ship from Pages for now (§6).
 
 ### 4.3 Deploy the API
 
