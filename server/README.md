@@ -52,7 +52,7 @@ interchangeable backends:
 | Backend | Selected by | Where the data lives |
 | --- | --- | --- |
 | `json` (default) | nothing set | `server/data/db.json` (gitignored), debounced atomic writes |
-| `postgres` | `DATABASE_URL` | PostgreSQL / Supabase — apply [`supabase/schema.sql`](../supabase/schema.sql) once |
+| `postgres` | `DATABASE_URL` | Any managed Postgres (Neon, Railway, Supabase) — apply [`supabase/schema.sql`](../supabase/schema.sql) once |
 
 The routes never see the difference: they mutate a plain order object and call
 `store.orders.save(order)`. `GET /api/health` reports which one is live in its
@@ -65,7 +65,7 @@ set — which is what you need on any host without a writable disk.
 Check either backend end to end, against a real throwaway PostgreSQL server:
 
 ```bash
-npm run verify:pg      # 76 passing checks: orders, tracking, payments, admin, restart
+npm run verify:pg      # 78 passing checks: orders, tracking, payments, admin, restart
 ```
 
 On first boot the server seeds:
@@ -110,5 +110,5 @@ before it will deliver.
 * `JWT_SECRET` must be set in production. Without it the generated secret is
   written to `server/data/.jwt-secret`, which a read-only (serverless)
   filesystem cannot keep — every deploy would sign staff out.
-* The Supabase connection needs the **service-role** key for Storage; that key
+* If you add Supabase Storage, the connection needs the **service-role** key; that key
   bypasses row-level security and must never reach the browser.

@@ -49,9 +49,10 @@ so an Express-hosted build runs live and the static GitHub Pages build transpare
 back to seeded demo data (the admin dashboard says which mode you are in).
 
 Orders, payments, staff accounts and newsletter sign-ups live in
-`server/data/db.json` by default, or in **PostgreSQL/Supabase** when
+`server/data/db.json` by default, or in **any managed Postgres (Neon by default)** when
 `DATABASE_URL` is set — apply [`supabase/schema.sql`](supabase/schema.sql) once and the same
-API runs on a host with no disk. Product photos go to Supabase Storage when it is configured.
+API runs on a host with no disk. Staff photos are served from the host's disk, or from
+Supabase Storage if you ever configure it.
 `npm run verify:pg` boots a real throwaway PostgreSQL server and checks both backends end to
 end. On the client side, `npm run verify:store` and `npm run verify:ui` run the real cart store
 and the real components in a jsdom window — 31 checks covering the sold-out, nav-highlight and
@@ -73,7 +74,7 @@ Deployment: which provider does which job, and the exact configuration for each,
 | Animation | Framer Motion |
 | Icons | Lucide |
 | Routing | React Router 7 |
-| Backend | Express 4 (JSON-file **or** PostgreSQL/Supabase store, JWT, bcrypt, multer) |
+| Backend | Express 4 (JSON-file **or** Postgres store — Neon, Supabase, … — JWT, bcrypt, multer) |
 | Deploy | GitHub Pages (storefront) + any Node host for the API — see [DEPLOYMENT.md](DEPLOYMENT.md) |
 
 ## Getting started

@@ -54,13 +54,13 @@ interface with two backends:
 | Backend | Selected by | Data lives in |
 | --- | --- | --- |
 | `json` (default, unchanged) | nothing set | `server/data/db.json` |
-| `postgres` | `DATABASE_URL` | PostgreSQL / Supabase |
+| `postgres` | `DATABASE_URL` | any managed Postgres — Neon, Railway, Render, Supabase |
 
-`server/lib/env.mjs` no longer hard-fails on a read-only disk, and uploads go to Supabase
-Storage when it is configured. The routes never see the difference.
+`server/lib/env.mjs` no longer hard-fails on a read-only disk, and uploads go to the host's
+disk — or to Supabase Storage if it is ever configured. The routes never see the difference.
 
 Verified — `npm run verify:pg` boots a real throwaway PostgreSQL 18.4, applies
-`supabase/schema.sql`, runs the actual Express API against it and asserts 76 checks across
+`supabase/schema.sql`, runs the actual Express API against it and asserts 78 checks across
 both backends (order creation with server-side re-pricing, coupon maths, public tracking,
 phone-mismatch rejection, mobile-money collection, admin ledger/status/stats, newsletter
 de-duplication), then **restarts the server** to prove the rows really are in the database:
@@ -76,9 +76,9 @@ de-duplication), then **restarts the server** to prove the rows really are in th
 PASS — 0 failing check(s)
 ```
 
-Supabase is managed PostgreSQL, so this exercises the identical wire protocol and the
-identical SQL. What it cannot check from here is Supabase's own console: creating the project,
-the `media` bucket, and the pooled connection string.
+Any managed Postgres speaks the same wire protocol and the same SQL, so these checks cover
+Neon, Railway or Supabase alike — no Supabase account is needed to run them, and none is
+needed to run the shop.
 
 ---
 
@@ -87,7 +87,9 @@ the `media` bucket, and the pooled connection string.
 | Provider | Job | Why |
 | --- | --- | --- |
 | **GitHub Pages** | Storefront (`https://iscorockie.github.io/chikwafu/`) | Already live, $0, and the workflow now deploys `main`. |
-| **Supabase** | `users`, `orders`, `payments`, `newsletter` + the `media` photo bucket | Transactions for order+payment, RLS for the admin surface, Storage with no disk needed, free tier 500 MB DB / 1 GB files. |
+| **Neon (free Postgres)** | `users`, `orders`, `payments`, `newsletter` | The schema is plain SQL (verified against a vanilla PostgreSQL 18.4), the free tier needs no card, and a serverless host can hold the connection. |
+| **API host disk / Pages** | product photos | The 1,797 catalogue photos already ship from Pages; staff uploads land in `server/uploads/` and are served from `/uploads/*`. |
+| **Supabase** | Not used (optional later) | The free plan caps at 2 active projects and both slots are taken. The Storage integration stays wired as an add-on (§4.2). |
 | **A Node host** | `server/` — the Express API | Express 4 + multer + bcryptjs need Node, not an edge runtime. Render / Railway / Fly / a $5 VPS all work. |
 | **Zoho** | ZeptoMail receipts, Campaigns mailing list, Desk tickets | All three are wired in `server/lib/zoho.mjs` and inert until their keys exist. |
 | **Cloudflare** | Optional, later | DNS + CDN in front of the Pages domain, and R2 for the 79 MB of product photos (zero egress fees). `wrangler.jsonc` is already correct if you ever want to move the SPA there. |
@@ -95,11 +97,11 @@ the `media` bucket, and the pooled connection string.
 
 ### Cost & caveats (free tiers, verified 2026)
 
-* **Supabase free** — 500 MB database, 1 GB storage, 5 GB egress, 500k Edge Function
-  invocations, 50k MAU. **Free projects pause after ~7 days of inactivity**: fine for a shop
-  with daily traffic, so keep the staging project separate. **The free plan allows only
-  2 active projects per member**, counted across every organisation where that member is
-  admin or owner — creating another organisation does not add slots (see §4.2 if the
+* **Neon free** — 0.5 GiB storage, autoscaling compute that suspends when idle, so the first
+  request after a quiet spell wakes it (same caveat as Render's free web tier).
+* **Supabase free** *(optional add-on, not required)* — 500 MB database, 1 GB storage, but
+  **only 2 active projects per member**, counted across every organisation where that member
+  is admin or owner — creating another organisation does not add slots (see §4.2 if the
   "New project" button refuses you).
 * **MongoDB Atlas M0** — 512 MB, shared RAM, no automated backups (not used).
 * **Cloudflare Workers free** — 20,000 static files/version, 25 MiB/file. Our `dist/` is
@@ -122,11 +124,29 @@ gh workflow run "Deploy storefront to GitHub Pages" --ref main
 Verified build output: base `/chikwafu/`, `dist/404.html` present for client-side routes,
 3,202 files / 84 MB. Delete the `storefront-react` branch once this has run.
 
-### 4.2 Create the Supabase project
+### 4.2 Create the database (no Supabase needed)
+
+The schema is plain PostgreSQL, so Supabase is one possible host among many — and your
+account cannot create a free project right now anyway. The primary path skips it:
+
+1. **neon.tech → New project** — free tier, no card. Pick the region closest to your users.
+2. **Connection details** → copy the connection string. That is `DATABASE_URL`
+   (the pooled `-pooler` string is fine for the API).
+3. **Apply the schema once** — it is idempotent:
+
+   ```bash
+   psql "$DATABASE_URL" -f supabase/schema.sql
+   ```
+
+   (or paste it into the Neon SQL editor). There is no bucket and no service key: staff
+   uploads live on the API host (§4.3).
+
+Railway, Render Postgres or a VPS install work identically — anything PostgreSQL 13+.
+
+#### If you later free a Supabase slot (optional add-on)
 
 1. **New project** → note the region closest to your users (e.g. `eu-west-2` London).
-2. **SQL Editor** → paste `supabase/schema.sql` → Run. It is idempotent.
-   (Or `psql "$DATABASE_URL" -f supabase/schema.sql`.)
+2. **SQL Editor** → paste `supabase/schema.sql` → Run.
 3. **Storage → New bucket** → name `media`, tick **Public**.
 4. **Project Settings → Database → Connection string (URI)** → copy the *pooled* string
    (port 6543). That is `DATABASE_URL`.
@@ -146,14 +166,6 @@ help. The dashboard's own remedies are "delete, pause, or upgrade", in order of 
    Permanent, and frees the slot.
 3. **Upgrade** one organisation to Pro if both existing projects are production.
 
-**Or skip Supabase entirely — the schema is plain Postgres.** `supabase/schema.sql` uses no
-extensions and no `auth.` schema; `npm run verify:pg` applies it to a vanilla
-PostgreSQL 18.4 and passes all 76 checks. Any managed Postgres (Neon's free tier included)
-can host it: `psql "$DATABASE_URL" -f supabase/schema.sql`, set `PG_SSL=true`, and omit the
-three `SUPABASE_*` variables. Without `SUPABASE_URL` media uploads fall back to the API
-host's disk, so choose a host with a writable disk. You lose only Supabase Storage's photo
-CDN — product photos already ship from Pages for now (§6).
-
 ### 4.3 Deploy the API
 
 Any Node ≥ 22.6 host. Render free tier is the lowest-friction start; note it sleeps after
@@ -168,17 +180,21 @@ Environment:
 
 | Variable | Value |
 | --- | --- |
-| `DATABASE_URL` | the pooled Supabase URI |
-| `PG_SSL` | `true` |
-| `SUPABASE_URL` | `https://<ref>.supabase.co` |
-| `SUPABASE_SERVICE_KEY` | service-role key |
-| `SUPABASE_BUCKET` | `media` |
+| `DATABASE_URL` | the Neon (or any Postgres) connection string |
+| `PG_SSL` | `true` — or omit: it auto-detects neon/railway/render/supabase hosts |
+| `UPLOAD_DIR` | optional; where staff uploads land (default `server/uploads/`) |
 | `JWT_SECRET` | 48+ random bytes — **mandatory**, there is no disk to persist a generated one |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | change from the `chikwafu2026` default |
 | `PUBLIC_URL` | the API's own origin |
 | `STORE_URL` | `https://iscorockie.github.io/chikwafu` (links in outgoing email) |
 | `SERVE_STATIC` | `false` — Pages serves the storefront, the API only serves `/api/*` |
 | `ZENGAPAY_MODE` | `sandbox` until real gateway code exists (live mode throws by design) |
+
+Without `SUPABASE_*`, staff media uploads are written to `UPLOAD_DIR` and served back from
+`/uploads/*` by the API. On a host with an ephemeral disk (Render free) they reset on each
+deploy — acceptable while catalogue photos ship from Pages; on a host with *no* writable
+disk the upload endpoint answers a clean 503 that names both remedies. Adding Supabase
+Storage later is just the three `SUPABASE_*` variables — uploads move to the bucket.
 
 CORS is already open (`app.use(cors())`), which is what a separate Pages origin needs.
 
@@ -270,7 +286,7 @@ now exists in Zoho Desk; moving the acknowledgement into the `orders` row is a s
 | `server/lib/env.mjs` | new config, no hard failure on a read-only disk |
 | `server/routes/{orders,payments,newsletter,auth,media}.mjs` | async store calls, Zoho hooks, `handledBy` |
 | `server/index.mjs` | `openStore()`, `store` field in `/api/health`, clean shutdown |
-| `scripts/verify-postgres.mjs` | `npm run verify:pg` — 76 checks against real PostgreSQL |
+| `scripts/verify-postgres.mjs` | `npm run verify:pg` — 78 checks against real PostgreSQL |
 | `scripts/verify-store.mjs` | `npm run verify:store` — 15 checks against the real cart store |
 | `scripts/verify-ui.mjs` | `npm run verify:ui` — 16 checks against the rendered DOM |
 | `scripts/lib/{ts-resolve,register-ts}.mjs` | lets the Node checks import `src/` as shipped |
@@ -310,7 +326,7 @@ by eye.
 
 ```bash
 npm run dev:all      # Vite :5173 (proxies /api) + API :5000 on the JSON store
-npm run verify:pg    # 76 checks against a real throwaway PostgreSQL
+npm run verify:pg    # 78 checks against a real throwaway PostgreSQL
 npm run verify:store # 15 checks against the real cart store
 npm run verify:ui    # 16 checks against the rendered DOM
 ```

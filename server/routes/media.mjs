@@ -10,6 +10,8 @@
  */
 import { Router } from 'express'
 import multer from 'multer'
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { join } from 'node:path'
 import { config } from '../lib/env.mjs'
 import { ah, badRequest } from '../lib/http.mjs'
 import { requireAdmin } from '../lib/auth.mjs'
@@ -28,6 +30,21 @@ const safeName = (original) => {
 }
 
 const useStorage = !!(config.supabaseUrl && config.supabaseServiceKey)
+
+/** A host with neither Supabase Storage nor a writable disk cannot take
+    uploads; say so with a 503 instead of letting multer die with a raw 500. */
+const diskWritable = (() => {
+  if (useStorage) return true
+  try {
+    mkdirSync(config.uploadDir, { recursive: true })
+    const probe = join(config.uploadDir, '.write-probe')
+    writeFileSync(probe, 'ok')
+    rmSync(probe)
+    return true
+  } catch {
+    return false
+  }
+})()
 
 const upload = multer({
   storage: useStorage
@@ -67,6 +84,13 @@ export function mediaRoutes() {
   const r = Router()
 
   r.post('/upload', requireAdmin, (req, res, next) => {
+    if (!diskWritable) {
+      return res.status(503).json({
+        error:
+          'Media upload needs a destination: set SUPABASE_URL + SUPABASE_SERVICE_KEY, ' +
+          'or run on a host with a writable UPLOAD_DIR. This host has neither.',
+      })
+    }
     upload.single('file')(req, res, (err) => (err ? next(err) : next()))
   }, ah(async (req, res) => {
     if (!req.file) throw badRequest('Attach a file in the "file" field.')

@@ -284,5 +284,25 @@ await exercise('JSON file backend (unchanged behaviour)')
 server.child.kill('SIGTERM')
 await new Promise((r) => setTimeout(r, 400))
 
+/* ── 3. No Supabase + no writable disk: uploads must fail loudly, not 500 ── */
+console.log('\n── Serverless media gate ──')
+server = startServer({
+  ...pgEnv,
+  DATABASE_URL: '',
+  DATA_DIR: '/tmp/chikwafu-verify-ro-data',
+  // A path through a *file* can never be created — the read-only-disk case.
+  UPLOAD_DIR: join(ROOT, 'package.json', 'uploads'),
+})
+health = await waitForHealth(server)
+const roLogin = await api('/api/auth/login', { method: 'POST', body: ADMIN })
+const roUpload = await api('/api/media/upload', { method: 'POST', token: roLogin.json?.token })
+ok('[no-disk] upload without a destination is a clean 503', roUpload.status === 503,
+  `got ${roUpload.status}`)
+ok('[no-disk] the 503 explains both remedies',
+  /SUPABASE_URL/.test(roUpload.json?.error ?? '') && /UPLOAD_DIR/.test(roUpload.json?.error ?? ''),
+  roUpload.json?.error ?? '(no body)')
+server.child.kill('SIGTERM')
+await new Promise((r) => setTimeout(r, 400))
+
 console.log(`\n${failures === 0 ? 'PASS' : 'FAIL'} — ${failures} failing check(s)`)
 process.exit(failures === 0 ? 0 : 1)
