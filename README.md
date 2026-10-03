@@ -55,8 +55,10 @@ API runs on a host with no disk. Staff photos are served from the host's disk, o
 Supabase Storage if you ever configure it.
 `npm run verify:pg` boots a real throwaway PostgreSQL server and checks both backends end to
 end. On the client side, `npm run verify:store` and `npm run verify:ui` run the real cart store
-and the real components in a jsdom window — 31 checks covering the sold-out, nav-highlight and
-cart-maths paths. All three use dev-only packages, installed with `npm i --no-save`; see
+and the real components in a jsdom window — 34 checks covering the sold-out, nav-highlight,
+cart-maths and broken-photo paths — while `npm run verify:catalog` audits the 1,797-product
+data file itself (unique slugs, photos that resolve, no HTML entities leaking into copy).
+The browser-side checks use dev-only packages, installed with `npm i --no-save`; see
 [DEPLOYMENT.md](DEPLOYMENT.md) §9. Outgoing mail (ZeptoMail), the mailing list (Campaigns) and agent-handled delivery
 tickets (Desk) are wired in `server/lib/zoho.mjs` and stay inert until their keys are set.
 

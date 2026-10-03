@@ -1,3 +1,5 @@
+import type { SyntheticEvent } from 'react'
+
 export const UGX = (n: number) =>
   'UGX ' + new Intl.NumberFormat('en-UG', { maximumFractionDigits: 0 }).format(Math.round(n))
 
@@ -22,3 +24,17 @@ const BASE_URL: string =
 
 export const asset = (path: string) =>
   `${BASE_URL}${path.replace(/^\//, '')}`.replace(/([^:]\/)\/+/g, '$1')
+
+/**
+ * Stand-in for a product photo that cannot be loaded — a device that is
+ * offline, or one of the few listings whose photo lives on a supplier CDN and
+ * has since gone away. Keeps the browser's broken-image icon off the grid.
+ */
+export const PHOTO_PLACEHOLDER = asset('/brand/photo-placeholder.svg')
+
+export const onPhotoError = (e: SyntheticEvent<HTMLImageElement>) => {
+  const img = e.currentTarget
+  if (img.dataset.placeholder === 'true') return // never loop on the fallback
+  img.dataset.placeholder = 'true'
+  img.src = PHOTO_PLACEHOLDER
+}

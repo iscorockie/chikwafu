@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { Heart, ShoppingBag } from 'lucide-react'
 import type { MouseEvent } from 'react'
 import type { Product } from '../lib/types'
-import { UGX, cx } from '../lib/format'
+import { UGX, cx, onPhotoError } from '../lib/format'
 import { Stars } from './Stars'
 import { ExpressBadge } from './ExpressBadge'
 import { useCart } from '../store/cart'
@@ -51,6 +51,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
               alt={product.name}
               loading={index < 4 ? 'eager' : 'lazy'}
               decoding="async"
+              onError={onPhotoError}
               className={cx(
               'h-full w-full object-cover transition-transform duration-[900ms] ease-[cubic-bezier(.22,1,.36,1)] group-hover:scale-[1.07]',
               soldOut && 'opacity-45 grayscale group-hover:scale-100',

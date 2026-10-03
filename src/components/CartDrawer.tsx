@@ -8,7 +8,7 @@ import {
   useCart,
   useCartDetails,
 } from '../store/cart'
-import { UGX } from '../lib/format'
+import { UGX, onPhotoError } from '../lib/format'
 
 export function CartDrawer() {
   const isOpen = useCart((s) => s.isOpen)
@@ -127,6 +127,7 @@ export function CartDrawer() {
                           <img
                             src={product.image}
                             alt={product.name}
+                            onError={onPhotoError}
                             className="h-[86px] w-[86px] rounded-xl bg-white object-cover"
                           />
                         </Link>
