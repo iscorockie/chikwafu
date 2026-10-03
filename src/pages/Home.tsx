@@ -14,7 +14,7 @@ import { collections, products } from '../lib/catalog'
 import { ExpressBadge } from '../components/ExpressBadge'
 import { ProductCard } from '../components/ProductCard'
 import { Stars } from '../components/Stars'
-import { UGX } from '../lib/format'
+import { UGX, onPhotoError } from '../lib/format'
 import { ADMIN_WA, AGENT_WA, waLink } from '../lib/whatsapp'
 import { usePresence } from '../store/presence'
 
@@ -120,6 +120,7 @@ function Hero() {
             <img
               src={hero.image}
               alt={hero.name}
+              onError={onPhotoError}
               className="mx-auto w-full max-w-[420px] object-contain drop-shadow-2xl"
               fetchPriority="high"
             />
@@ -241,6 +242,7 @@ function Collections() {
                   src={c.image}
                   alt={c.title}
                   loading="lazy"
+                  onError={onPhotoError}
                   className="h-full w-full object-cover transition-transform duration-[1100ms] ease-[cubic-bezier(.22,1,.36,1)] group-hover:scale-110"
                 />
               </div>
@@ -342,6 +344,7 @@ function Promo() {
             src={p.image}
             alt={p.name}
             loading="lazy"
+            onError={onPhotoError}
             className="mx-auto w-full max-w-[380px] rounded-2xl object-cover shadow-lift"
           />
         </motion.div>

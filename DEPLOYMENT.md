@@ -292,7 +292,8 @@ now exists in Zoho Desk; moving the acknowledgement into the `orders` row is a s
 | `server/index.mjs` | `openStore()`, `store` field in `/api/health`, clean shutdown |
 | `scripts/verify-postgres.mjs` | `npm run verify:pg` — 78 checks against real PostgreSQL |
 | `scripts/verify-store.mjs` | `npm run verify:store` — 15 checks against the real cart store |
-| `scripts/verify-ui.mjs` | `npm run verify:ui` — 16 checks against the rendered DOM |
+| `scripts/verify-ui.mjs` | `npm run verify:ui` — 19 checks against the rendered DOM |
+| `scripts/verify-catalog.mjs` | `npm run verify:catalog` — 14 checks on the product data |
 | `scripts/lib/{ts-resolve,register-ts}.mjs` | lets the Node checks import `src/` as shipped |
 | `src/lib/api.ts`, `src/pages/Checkout.tsx` | send `handledBy` |
 | `.github/workflows/deploy.yml` | deploy `main`, Node 22, `VITE_API_URL` from a secret |
@@ -326,17 +327,38 @@ Contrast figures are WCAG relative luminance computed from the hexes in
 this environment — so layout, animation and the real Pages subpath are untested
 by eye.
 
+### 8b. Catalogue data audit
+
+A later pass over `src/lib/catalog.ts` — the 1,797-product file the shop, the
+facets and the Express API all read — found four defects that were reaching real
+screens:
+
+| Defect | Fix |
+| --- | --- |
+| Two Galaxy Tab A9 listings shared the slug `samsung-galaxy-tab-a9-128gb-218`, so the A9+ had no page of its own (`getProduct` returns the first match) | the A9+ now lives at `/product/samsung-galaxy-tab-a9-plus-128gb` |
+| Nine products (Green Lion, Porodo, JBL) carried the importer's placeholder photo URL `https://static.wixstatic.com/media/file.jpg`, which answers **403** — a broken image on the tile, the product page and the cart, plus a failed request in the console | the grid image now points at the same supplier CDN file the gallery already used; the JBL Tune 670NC listing switches to the local `public/jbl` photos |
+| 1,254 HTML entities (`&amp;`, `&quot;`, `&lt;`, `&gt;`) sat in names, taglines and specs and rendered literally — `Samsung 43&quot; T5300`, `Secure Folder &amp; Privacy Dashboard`, `Charging Time: &lt;3 Hours` | decoded to plain text in the data, where React escapes them correctly |
+| Mojibake from a supplier export — `Itâ€™s rated IPX7 waterproof` | `It's rated IPX7 waterproof` |
+
+All four are now asserted by `npm run verify:catalog` (14 checks, no dev
+dependencies). And because a photo can still fail later — a device offline, a
+supplier CDN retired — every product `<img>` falls back to
+`public/brand/photo-placeholder.svg` instead of the browser's broken-image icon;
+three new `npm run verify:ui` checks cover that path.
+
 ## 9. Local development is unchanged
 
 ```bash
 npm run dev:all      # Vite :5173 (proxies /api) + API :5000 on the JSON store
 npm run verify:pg    # 78 checks against a real throwaway PostgreSQL
 npm run verify:store # 15 checks against the real cart store
-npm run verify:ui    # 16 checks against the rendered DOM
+npm run verify:ui    # 19 checks against the rendered DOM
+npm run verify:catalog # 14 checks on src/lib/catalog.ts (no dev deps needed)
 ```
 
-`verify:pg`, `verify:store` and `verify:ui` use dev-only dependencies that are
-deliberately not in `package.json`, so a normal `npm install` stays light:
+`verify:catalog` runs on plain Node. `verify:pg`, `verify:store` and `verify:ui`
+use dev-only dependencies that are deliberately not in `package.json`, so a
+normal `npm install` stays light:
 
 ```bash
 npm i --no-save embedded-postgres            # verify:pg

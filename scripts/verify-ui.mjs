@@ -10,7 +10,8 @@
  *   · Header  — NavLink used to match on pathname only, so all six "/shop…"
  *               items lit their underline at once on any /shop page.
  *   · ProductCard — an out-of-stock product (518 of them) offered a live
- *               "Add to cart" button and claimed "Only 0 left".
+ *               "Add to cart" button and claimed "Only 0 left"; a photo that
+ *               fails to load left the browser's broken-image icon on the tile.
  *
  * Dev-only dependency:  npm i --no-save jsdom
  */
@@ -138,6 +139,20 @@ const liveCta = [...container.querySelectorAll('button')].find((b) => /add to ca
 ok('an in-stock card still offers "Add to cart"', !!liveCta && liveCta.disabled === false)
 await act(async () => liveCta.dispatchEvent(new dom.window.MouseEvent('click', { bubbles: true })))
 ok('…and clicking it adds the product', useCart.getState().lines[0]?.productId === inStock.id)
+
+/* ── A photo that will not load must not leave a broken image behind ───── */
+const { PHOTO_PLACEHOLDER } = await import('../src/lib/format.ts')
+useCart.getState().clear()
+await render(createElement(MemoryRouter, null, createElement(ProductCard, { product: inStock })))
+const photo = container.querySelector('img')
+ok('a card renders the catalogue photo',
+  photo?.getAttribute('src') === inStock.image, `src="${photo?.getAttribute('src')}"`)
+await act(async () => photo.dispatchEvent(new dom.window.Event('error')))
+ok('…a photo that fails to load swaps to the local placeholder',
+  photo.getAttribute('src') === PHOTO_PLACEHOLDER, `src="${photo.getAttribute('src')}"`)
+await act(async () => photo.dispatchEvent(new dom.window.Event('error')))
+ok('…and the fallback cannot loop back into itself',
+  photo.getAttribute('src') === PHOTO_PLACEHOLDER && photo.dataset.placeholder === 'true')
 
 console.log(`\n${failures === 0 ? 'PASS' : 'FAIL'} — ${failures} failing check(s)`)
 process.exit(failures === 0 ? 0 : 1)

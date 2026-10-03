@@ -35,7 +35,18 @@ export async function load(url, context, nextLoad) {
   }
   if (TS.test(url) && !TSX.test(url)) return nextLoad(url, context) // Node strips .ts itself
 
-  const { transformSync } = await import('esbuild')
+  let transformSync
+  try {
+    ;({ transformSync } = await import('esbuild'))
+  } catch {
+    /* esbuild is deliberately not a project dependency — only the checks that
+       touch JSX need it. Say so instead of dying with ERR_MODULE_NOT_FOUND. */
+    console.error(
+      '\nesbuild is not installed — it is only needed by the JSX checks.\n\n' +
+      '    npm i --no-save esbuild jsdom && npm run ' + (process.env.npm_lifecycle_event ?? 'verify:ui') + '\n',
+    )
+    process.exit(2)
+  }
   const source = readFileSync(fileURLToPath(url), 'utf8')
   const { code } = transformSync(source, {
     loader: TSX.test(url) ? 'tsx' : 'ts',

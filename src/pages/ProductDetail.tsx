@@ -6,7 +6,7 @@ import {
   ShieldCheck, ShoppingBag, Truck, Wrench, Zap,
 } from 'lucide-react'
 import { getProduct, products } from '../lib/catalog'
-import { UGX, cx } from '../lib/format'
+import { UGX, cx, onPhotoError } from '../lib/format'
 import { Stars } from '../components/Stars'
 import { ExpressBadge } from '../components/ExpressBadge'
 import { ProductCard } from '../components/ProductCard'
@@ -98,6 +98,7 @@ export default function ProductDetail() {
                 key={shot}
                 src={g.image ?? product.image}
                 alt={`${product.name} — ${g.label}`}
+                onError={onPhotoError}
                 initial={{ opacity: 0, scale: 1.02 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
@@ -135,6 +136,7 @@ export default function ProductDetail() {
                 <img
                   src={s.image ?? product.image}
                   alt=""
+                  onError={onPhotoError}
                   style={{ transform: `scale(${s.zoom})`, objectPosition: s.pos }}
                   className="aspect-square w-full object-cover"
                 />
