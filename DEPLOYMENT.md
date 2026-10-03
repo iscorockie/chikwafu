@@ -97,8 +97,12 @@ needed to run the shop.
 
 ### Cost & caveats (free tiers, verified 2026)
 
-* **Neon free** — 0.5 GiB storage, autoscaling compute that suspends when idle, so the first
-  request after a quiet spell wakes it (same caveat as Render's free web tier).
+* **Neon free** — $0, no card: 0.5 GB storage and 100 CU-hours of compute per project per
+  month (hard cutoffs, verified against Neon's own limits page). Compute suspends after
+  ~5 idle minutes, so the first request after a quiet spell is a cold start — the same
+  caveat as Render's free web tier. Right-sized for a shop this size; a busy month that
+  burns the CU-hours suspends the DB until the cycle resets, at which point the Launch
+  plan ($/CU-hour) is the upgrade path.
 * **Supabase free** *(optional add-on, not required)* — 500 MB database, 1 GB storage, but
   **only 2 active projects per member**, counted across every organisation where that member
   is admin or owner — creating another organisation does not add slots (see §4.2 if the
