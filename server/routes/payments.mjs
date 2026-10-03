@@ -10,10 +10,10 @@
 import { Router } from 'express'
 import { ah, badRequest, notFound, rateLimit, isPhone } from '../lib/http.mjs'
 import { requireAdmin } from '../lib/auth.mjs'
-import { oid } from '../lib/db.mjs'
+import { oid } from '../lib/store.mjs'
 import { config } from '../lib/env.mjs'
 
-export function paymentRoutes(db) {
+export function paymentRoutes(store) {
   const r = Router()
 
   r.post(
@@ -31,7 +31,7 @@ export function paymentRoutes(db) {
       if (!isPhone(phone)) throw badRequest('Enter the Mobile Money number to charge.')
       if (!reference) throw badRequest('A transaction reference is required.')
 
-      const order = db.state.orders.find((o) => o.ref === reference || o._id === reference)
+      const order = await store.orders.byIdOrRef(reference)
       if (!order) throw notFound('No order matches that transaction reference.')
       if (order.totalPrice !== amount) {
         throw badRequest(`Amount does not match the order total (${order.totalPrice} UGX).`)
@@ -69,7 +69,7 @@ export function paymentRoutes(db) {
         status,
         createdAt: new Date().toISOString(),
       }
-      db.state.payments.unshift(payment)
+      await store.payments.insert(payment)
 
       if (status === 'SUCCESS') {
         order.isPaid = true
@@ -78,7 +78,7 @@ export function paymentRoutes(db) {
           status: order.status, at: payment.createdAt, by: 'zengapay',
         }]
       }
-      db.save()
+      await store.orders.save(order)
 
       res.status(status === 'SUCCESS' ? 200 : 402).json({
         status,
@@ -92,7 +92,7 @@ export function paymentRoutes(db) {
 
   /** Admin: recent payment attempts. */
   r.get('/zengapay/collections', requireAdmin, ah(async (_req, res) => {
-    res.json(db.state.payments.slice(0, 100))
+    res.json(await store.payments.recent(100))
   }))
 
   return r

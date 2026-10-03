@@ -10,27 +10,12 @@
 import express from 'express'
 import cors from 'cors'
 import { config, ROOT_DIR } from './lib/env.mjs'
-import { createStore } from './lib/db.mjs'
-import { seedDatabase } from './lib/seed.mjs'
+import { openStore } from './lib/store.mjs'
 import { attachUser } from './lib/auth.mjs'
 import { staticHandler, notBuiltHandler } from './lib/static.mjs'
 import { productCount } from './lib/catalog.mjs'
 import { join } from 'node:path'
 import { existsSync } from 'node:fs'
-
-const dbFile = join(config.dataDir, 'db.json')
-
-/** Seed on first boot (async bcrypt hash), then open the JSON store. */
-async function loadDb() {
-  if (!existsSync(dbFile)) {
-    console.log('[db] first boot — seeding admin account and demo ledger…')
-    const fresh = await seedDatabase()
-    createStore(dbFile, () => fresh).flush()
-  }
-  return createStore(dbFile, () => {
-    throw new Error('db.json missing')
-  })
-}
 
 async function main() {
   const app = express()
@@ -51,14 +36,15 @@ async function main() {
     next()
   })
 
-  const db = await loadDb()
+  const store = await openStore()
 
-  app.get('/api/health', (_req, res) => {
+  app.get('/api/health', async (_req, res) => {
     res.json({
       status: 'ok',
       name: 'chikwafu-api',
       products: productCount(),
-      orders: db.state.orders.length,
+      orders: await store.orders.count(),
+      store: store.kind,
       version: 1,
       time: new Date().toISOString(),
     })
@@ -71,12 +57,12 @@ async function main() {
   const { mediaRoutes } = await import('./routes/media.mjs')
   const { newsletterRoutes } = await import('./routes/newsletter.mjs')
 
-  app.use('/api/auth', authRoutes(db))
+  app.use('/api/auth', authRoutes(store))
   app.use('/api/products', productRoutes())
-  app.use('/api/orders', orderRoutes(db))
-  app.use('/api/payments', paymentRoutes(db))
+  app.use('/api/orders', orderRoutes(store))
+  app.use('/api/payments', paymentRoutes(store))
   app.use('/api/media', mediaRoutes())
-  app.use('/api/newsletter', newsletterRoutes(db))
+  app.use('/api/newsletter', newsletterRoutes(store))
 
   app.use('/api', (_req, res) => res.status(404).json({ message: 'Unknown API endpoint.' }))
 
@@ -97,8 +83,16 @@ async function main() {
     console.log(`Chikwafu API listening on http://${config.host}:${config.port}`)
     console.log(`  · API      /api/health (${productCount()} products loaded)`)
     console.log(`  · Store    ${config.serveStatic && existsSync(join(ROOT_DIR, 'dist', 'index.html')) ? 'serving dist/' : 'dist/ not built yet'}`)
-    console.log(`  · Data     ${dbFile}`)
+    console.log(`  · Data     ${store.kind === 'postgres' ? config.pgLabel + ' (Postgres)' : join(config.dataDir, 'db.json')}`)
   })
+
+  // Release the pool cleanly on platform shutdown.
+  for (const sig of ['SIGINT', 'SIGTERM']) {
+    process.once(sig, async () => {
+      await store.close()
+      process.exit(0)
+    })
+  }
 }
 
 main().catch((err) => {

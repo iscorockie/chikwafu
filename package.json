@@ -13,6 +13,9 @@
     "server": "node server/index.mjs",
     "dev:server": "node --watch server/index.mjs",
     "dev:all": "node scripts/dev-all.mjs",
+    "verify:pg": "node scripts/verify-postgres.mjs",
+    "verify:store": "node --import ./scripts/lib/register-ts.mjs scripts/verify-store.mjs",
+    "verify:ui": "node --import ./scripts/lib/register-ts.mjs scripts/verify-ui.mjs",
     "postinstall": "node -e \"const{execSync}=require('node:child_process');try{execSync('npm install --no-audit --no-fund',{cwd:'server',stdio:'inherit'})}catch{}\" || true"
   },
   "dependencies": {

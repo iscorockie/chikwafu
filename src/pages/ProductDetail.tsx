@@ -56,6 +56,7 @@ export default function ProductDetail() {
   if (!product) return <Navigate to="/shop" replace />
 
   const wished = wishIds.includes(product.id)
+  const soldOut = product.stock <= 0
   const off = product.compareAt ? Math.round((1 - product.price / product.compareAt) * 100) : 0
   const g = product.gallery[shot]
   const shownReviews = reviewFilter
@@ -113,6 +114,7 @@ export default function ProductDetail() {
             <button
               onClick={() => toggleWish(product.id)}
               aria-label={wished ? 'Remove from wishlist' : 'Save to wishlist'}
+              aria-pressed={wished}
               className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-black/60 text-text ring-1 ring-white/15 backdrop-blur transition hover:scale-110 hover:bg-black/80"
             >
               <Heart size={18} className={cx(wished && 'fill-accent text-accent')} />
@@ -157,7 +159,7 @@ export default function ProductDetail() {
           )}
           <div className="flex items-center gap-2.5 text-[11.5px] uppercase tracking-[0.18em] text-text-dim">
             <span className="font-semibold text-accent">{product.brand}</span>
-            <span className="h-1 w-1 rounded-full bg-bg-2-300" />
+            <span className="h-1 w-1 rounded-full bg-white/25" />
             <span>{product.category}</span>
           </div>
 
@@ -217,8 +219,9 @@ export default function ProductDetail() {
             <div className="flex items-center rounded-full border border-white/15 bg-card">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
+                disabled={soldOut}
                 aria-label="Decrease quantity"
-                className="grid h-12 w-12 place-items-center rounded-full transition hover:bg-bg-3"
+                className="grid h-12 w-12 place-items-center rounded-full transition hover:bg-bg-3 disabled:opacity-30"
               >
                 <Minus size={15} />
               </button>
@@ -233,7 +236,11 @@ export default function ProductDetail() {
               </button>
             </div>
 
-            <button onClick={handleAdd} className="btn-primary h-12 flex-1 min-w-[200px] text-[14px]">
+            <button
+              onClick={handleAdd}
+              disabled={soldOut}
+              className="btn-primary h-12 flex-1 min-w-[200px] text-[14px]"
+            >
               <AnimatePresence mode="wait" initial={false}>
                 {added ? (
                   <motion.span
@@ -249,7 +256,7 @@ export default function ProductDetail() {
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
                     className="flex items-center gap-2"
                   >
-                    <ShoppingBag size={17} /> Add to cart — {UGX(product.price * qty)}
+                    {soldOut ? 'Out of stock' : <><ShoppingBag size={17} /> Add to cart — {UGX(product.price * qty)}</>}
                   </motion.span>
                 )}
               </AnimatePresence>
@@ -271,11 +278,20 @@ export default function ProductDetail() {
           </a>
 
           <div className="mt-3.5 flex items-center gap-2 text-[13px]">
-            <span className={cx('h-2 w-2 rounded-full', product.stock > 10 ? 'bg-accent' : 'bg-accent')} />
-            {product.stock > 10 ? (
+            <span
+              className={cx(
+                'h-2 w-2 shrink-0 rounded-full',
+                soldOut ? 'bg-danger' : product.stock > 10 ? 'bg-accent' : 'bg-amber-400',
+              )}
+            />
+            {soldOut ? (
+              <span className="text-danger">
+                Out of stock — ask us on WhatsApp when the next shipment lands
+              </span>
+            ) : product.stock > 10 ? (
               <span className="text-accent">In stock — ships today from Ntinda</span>
             ) : (
-              <span className="text-accent">Only {product.stock} left in the showroom</span>
+              <span className="text-amber-400">Only {product.stock} left in the showroom</span>
             )}
           </div>
 

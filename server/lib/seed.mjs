@@ -5,7 +5,7 @@
  */
 import bcrypt from 'bcryptjs'
 import { config } from './env.mjs'
-import { oid } from './db.mjs'
+import { oid } from './oid.mjs'
 import { productCount, slim } from './catalog.mjs'
 
 /** Products are imported for order lines — lazy to keep boot fast. */

@@ -136,7 +136,7 @@ export function Footer() {
             Airtel Money
           </span>
           <span className="rounded-md border border-white/15 px-2.5 py-1 text-[10.5px] font-semibold tracking-wide">
-            Visa
+            Cash on delivery
           </span>
         </div>
       </div>

@@ -78,7 +78,10 @@ export default function Track() {
       }
     } catch {
       setView(null)
-      setError('No order matches that reference and phone number. Check the SMS we sent you, or call 0780 844 098.')
+      setError(
+        'No order matches that reference and phone number. Check your confirmation email, ' +
+          'or call 0780 844 098 and we will look it up.',
+      )
     } finally {
       setBusy(false)
     }
@@ -108,6 +111,9 @@ export default function Track() {
             placeholder="Order reference"
             aria-label="Order reference"
             required
+            autoCapitalize="characters"
+            autoCorrect="off"
+            spellCheck={false}
             className="input font-mono uppercase"
           />
           <input
@@ -123,11 +129,13 @@ export default function Track() {
             {busy ? 'Checking…' : <><Search size={15} /> Track</>}
           </button>
         </form>
-        {error && (
-          <p className="mt-3 flex items-start gap-2 text-[13px] text-danger">
-            <X size={14} className="mt-0.5 shrink-0" /> {error}
-          </p>
-        )}
+        <div aria-live="polite">
+          {error && (
+            <p className="mt-3 flex items-start gap-2 text-[13px] text-danger">
+              <X size={14} className="mt-0.5 shrink-0" /> {error}
+            </p>
+          )}
+        </div>
       </div>
 
       {view && (
@@ -213,7 +221,11 @@ export default function Track() {
               </p>
               <p className="flex items-center gap-2 text-[12.5px] text-text-muted">
                 <PackageCheck size={14} className="shrink-0 text-accent" />
-                {view.isPaid ? 'Paid' : 'Payment on delivery'}
+                {view.isPaid
+                  ? 'Paid'
+                  : view.paymentMethod === 'cod'
+                    ? 'Cash on delivery'
+                    : 'Payment pending'}
               </p>
             </div>
 

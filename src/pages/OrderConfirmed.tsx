@@ -17,6 +17,19 @@ interface Order {
   placedAt: string
   /** 'admin' when the Admin was online at order time; 'agent' otherwise */
   handledBy?: 'admin' | 'agent'
+  status?: 'pending' | 'processing'
+  paid?: boolean
+}
+
+/**
+ * What actually happened to the money. The page used to print "Payment
+ * confirmed" for every order, including cash-on-delivery ones that have not
+ * been paid at all.
+ */
+const paymentState = (o: Order) => {
+  if (o.paid) return { label: 'Payment confirmed', tone: 'text-accent', total: 'Total paid' }
+  if (o.payment === 'cod') return { label: 'Pay our rider on delivery', tone: 'text-text', total: 'Total due' }
+  return { label: 'Awaiting payment', tone: 'text-amber-400', total: 'Total due' }
 }
 
 const LABELS: Record<string, string> = {
@@ -111,7 +124,7 @@ export default function OrderConfirmed() {
         >
           <div className="grid gap-px bg-bg-2/8 sm:grid-cols-3">
             {[
-              { icon: Package, l: 'Status', v: 'Payment confirmed' },
+              { icon: Package, l: 'Payment', v: paymentState(order).label },
               { icon: Truck, l: 'Estimated delivery', v: eta },
               { icon: Phone, l: 'Paid with', v: LABELS[order.payment] ?? order.payment },
             ].map(({ icon: Icon, l, v }) => (
@@ -154,7 +167,9 @@ export default function OrderConfirmed() {
                 </dd>
               </div>
               <div className="flex items-baseline justify-between border-t border-white/10 pt-3">
-                <dt className="font-display text-base font-semibold text-text">Total paid</dt>
+                <dt className="font-display text-base font-semibold text-text">
+                  {paymentState(order).total}
+                </dt>
                 <dd className="font-display text-xl font-semibold tabular-nums text-text">
                   {UGX(order.total)}
                 </dd>
@@ -215,7 +230,12 @@ export default function OrderConfirmed() {
       )}
 
       <div className="mt-10 flex flex-wrap justify-center gap-3">
-        <Link to="/shop" className="btn-primary">Continue shopping</Link>
+        {order && (
+          <Link to="/track" className="btn-primary">
+            <Truck size={15} /> Track this order
+          </Link>
+        )}
+        <Link to="/shop" className={order ? 'btn-ghost' : 'btn-primary'}>Continue shopping</Link>
         <a href="tel:+256780844098" className="btn-ghost">
           <Phone size={15} /> Call us on 0780 844 098
         </a>

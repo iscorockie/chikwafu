@@ -100,6 +100,7 @@ export default function Checkout() {
           coupon,
           payment,
           delivery: d,
+          handledBy: adminOnline ? 'admin' : 'agent',
         })
         if (created.ref) ref = created.ref
         paidTotal = created.totalPrice || paidTotal
@@ -138,6 +139,9 @@ export default function Checkout() {
       items: detailed.map((l) => ({ name: l.product.name, qty: l.qty, total: l.lineTotal })),
       subtotal, discount, delivery, total, payment, delivery_details: d,
       placedAt, handledBy,
+      /** Lets the confirmation page tell the truth about payment. */
+      status: orderStatus,
+      paid: orderStatus === 'processing',
     }
     sessionStorage.setItem('chikwafu-last-order', JSON.stringify(order))
 
@@ -167,14 +171,23 @@ export default function Checkout() {
     props: React.InputHTMLAttributes<HTMLInputElement> = {},
   ) => (
     <div>
-      <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">{label}</label>
+      <label htmlFor={key} className="mb-1.5 block text-[12.5px] font-medium text-text-muted">
+        {label}
+      </label>
       <input
+        id={key}
         value={d[key]}
         onChange={(e) => setD({ ...d, [key]: e.target.value })}
-        className={cx('input', errors[key] && 'border-accent ring-4 ring-accent/10')}
+        aria-invalid={!!errors[key]}
+        aria-describedby={errors[key] ? `${key}-error` : undefined}
+        className={cx('input', errors[key] && 'border-danger ring-4 ring-danger/15')}
         {...props}
       />
-      {errors[key] && <p className="mt-1 text-[11.5px] text-accent">{errors[key]}</p>}
+      {errors[key] && (
+        <p id={`${key}-error`} role="alert" className="mt-1 text-[11.5px] text-danger">
+          {errors[key]}
+        </p>
+      )}
     </div>
   )
 
@@ -242,8 +255,11 @@ export default function Checkout() {
                       {field('email', 'Email (optional)', { placeholder: 'you@example.com', type: 'email', autoComplete: 'email' })}
                     </div>
                     <div>
-                      <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">District</label>
+                      <label htmlFor="region" className="mb-1.5 block text-[12.5px] font-medium text-text-muted">
+                        District
+                      </label>
                       <select
+                        id="region"
                         value={d.region}
                         onChange={(e) => setD({ ...d, region: e.target.value })}
                         className="input cursor-pointer"
@@ -256,10 +272,11 @@ export default function Checkout() {
                       {field('address', 'Street, plot or landmark', { placeholder: 'Plot 12, off Kigowa Road, near Capital Shoppers' })}
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">
+                      <label htmlFor="notes" className="mb-1.5 block text-[12.5px] font-medium text-text-muted">
                         Delivery notes (optional)
                       </label>
                       <textarea
+                        id="notes"
                         value={d.notes}
                         onChange={(e) => setD({ ...d, notes: e.target.value })}
                         rows={3}
@@ -329,17 +346,25 @@ export default function Checkout() {
                         className="overflow-hidden"
                       >
                         <div className="mt-5 rounded-xl bg-bg p-5">
-                          <label className="mb-1.5 block text-[12.5px] font-medium text-text-muted">
+                          <label htmlFor="momo" className="mb-1.5 block text-[12.5px] font-medium text-text-muted">
                             {payment === 'mtn' ? 'MTN' : 'Airtel'} number to charge
                           </label>
                           <input
+                            id="momo"
                             value={momoNumber}
                             onChange={(e) => setMomoNumber(e.target.value)}
                             placeholder={payment === 'mtn' ? '0780 000 000' : '0750 000 000'}
                             inputMode="tel"
-                            className={cx('input bg-card', errors.momo && 'border-accent ring-4 ring-accent/10')}
+                            autoComplete="tel"
+                            aria-invalid={!!errors.momo}
+                            aria-describedby={errors.momo ? 'momo-error' : undefined}
+                            className={cx('input bg-card', errors.momo && 'border-danger ring-4 ring-danger/15')}
                           />
-                          {errors.momo && <p className="mt-1 text-[11.5px] text-accent">{errors.momo}</p>}
+                          {errors.momo && (
+                            <p id="momo-error" role="alert" className="mt-1 text-[11.5px] text-danger">
+                              {errors.momo}
+                            </p>
+                          )}
                           <p className="mt-3 text-[12px] leading-relaxed text-text-muted">
                             You&apos;ll receive a prompt to enter your PIN. Keep this page open until the
                             payment confirms.
@@ -351,7 +376,7 @@ export default function Checkout() {
                   </AnimatePresence>
 
                   {errors.cod && (
-                    <p className="mt-4 rounded-xl bg-accent/10 px-4 py-3 text-[12.5px] text-accent">
+                    <p role="alert" className="mt-4 rounded-xl bg-danger/10 px-4 py-3 text-[12.5px] text-danger">
                       {errors.cod}
                     </p>
                   )}
@@ -433,7 +458,7 @@ export default function Checkout() {
                   </div>
 
                   {errors.submit && (
-                    <p className="flex items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-[13px] font-medium text-danger">
+                    <p role="alert" className="flex items-center gap-2 rounded-xl border border-danger/40 bg-danger/10 px-4 py-3 text-[13px] font-medium text-danger">
                       <Lock size={14} className="shrink-0" /> {errors.submit}
                     </p>
                   )}

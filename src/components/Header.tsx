@@ -36,6 +36,28 @@ export function Header() {
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
+  /* Escape closes the drawer, like the cart drawer already does. */
+  useEffect(() => {
+    if (!mobileOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMobileOpen(false)
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [mobileOpen])
+
+  /**
+   * NavLink reports every `/shop…` item active on any `/shop` page because it
+   * matches the pathname only — all six underlines lit up together. Match the
+   * query string too: "Shop All" is active only with no filters applied.
+   */
+  const isActiveLink = (to: string) => {
+    const [path, search] = to.split('?')
+    if (loc.pathname !== path) return false
+    if (!search) return loc.search === ''
+    const want = new URLSearchParams(search)
+    const have = new URLSearchParams(loc.search)
+    return [...want].every(([k, v]) => have.get(k) === v)
+  }
+
   return (
     <>
       <div className="relative z-50 overflow-hidden border-b border-white/10 bg-bg-2 text-text-muted">
@@ -44,7 +66,7 @@ export function Header() {
             <div key={k} className="flex shrink-0 items-center gap-10 pr-10">
               <span>Free delivery within Kampala on orders above UGX 1,500,000</span>
               <span className="text-accent">•</span>
-              <span>Pay with MTN MoMo, Airtel Money, card or cash on delivery</span>
+              <span>Pay with MTN MoMo, Airtel Money or cash on delivery</span>
               <span className="text-accent">•</span>
               <span>Genuine warranty on every appliance</span>
               <span className="text-accent">•</span>
@@ -67,7 +89,9 @@ export function Header() {
           <button
             onClick={() => setMobileOpen(true)}
             className="-ml-2 grid h-10 w-10 place-items-center rounded-full text-text transition hover:bg-card/10 lg:hidden"
-            aria-label="Open menu"
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-menu"
           >
             <Menu size={20} />
           </button>
@@ -81,24 +105,19 @@ export function Header() {
               <NavLink
                 key={n.label}
                 to={n.to}
-                className={({ isActive }) =>
-                  cx(
-                    'relative py-1 text-[13.5px] font-bold tracking-wide text-text-muted transition-colors hover:text-text',
-                    isActive && loc.pathname === '/shop' && !loc.search && n.to === '/shop' && 'text-text',
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {n.label}
-                    <span
-                      className={cx(
-                        'absolute -bottom-0.5 left-0 h-0.5 w-full origin-left scale-x-0 bg-accent transition-transform duration-300',
-                        isActive && 'scale-x-100',
-                      )}
-                    />
-                  </>
+                aria-current={isActiveLink(n.to) ? 'page' : 'false'}
+                className={cx(
+                  'relative py-1 text-[13.5px] font-bold tracking-wide transition-colors hover:text-text',
+                  isActiveLink(n.to) ? 'text-text' : 'text-text-muted',
                 )}
+              >
+                {n.label}
+                <span
+                  className={cx(
+                    'absolute -bottom-0.5 left-0 h-0.5 w-full origin-left bg-accent transition-transform duration-300',
+                    isActiveLink(n.to) ? 'scale-x-100' : 'scale-x-0',
+                  )}
+                />
               </NavLink>
             ))}
           </nav>
@@ -160,6 +179,10 @@ export function Header() {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              id="mobile-menu"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Site menu"
               className="fixed inset-y-0 left-0 z-[70] w-[84vw] max-w-[340px] border-r border-white/10 bg-bg-2 p-6 shadow-lift lg:hidden"
             >
               <div className="flex items-center justify-between">

@@ -9,7 +9,10 @@ export default {
         bg: { DEFAULT: '#0a0a0f', 2: '#111118', 3: '#18181f' },
         card: '#1c1c25',
         accent: { DEFAULT: '#00e5a0', 2: '#00c488', dim: 'rgba(0,229,160,.12)' },
-        text: { DEFAULT: '#f0f0f5', muted: '#8888a0', dim: '#555568' },
+        // Measured contrast on bg #0a0a0f / card #1c1c25: text 17.4:1, muted 7.2:1,
+        // dim 5.5:1. The old dim (#555568) was 2.7:1 and 2.3:1 — below WCAG AA for
+        // the small text it carries — so both were lifted, keeping the ramp.
+        text: { DEFAULT: '#f0f0f5', muted: '#9a9ab0', dim: '#85859c' },
         line: 'hsla(0,0%,100%,.08)',
         danger: '#ff4d4d',
       },

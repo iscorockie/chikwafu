@@ -15,6 +15,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
   const toggleWish = useWishlist((s) => s.toggle)
   const navigate = useNavigate()
   const wished = wishIds.includes(product.id)
+  const soldOut = product.stock <= 0
   const off = product.compareAt
     ? Math.round((1 - product.price / product.compareAt) * 100)
     : 0
@@ -50,7 +51,10 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
               alt={product.name}
               loading={index < 4 ? 'eager' : 'lazy'}
               decoding="async"
-              className="h-full w-full object-cover transition-transform duration-[900ms] ease-[cubic-bezier(.22,1,.36,1)] group-hover:scale-[1.07]"
+              className={cx(
+              'h-full w-full object-cover transition-transform duration-[900ms] ease-[cubic-bezier(.22,1,.36,1)] group-hover:scale-[1.07]',
+              soldOut && 'opacity-45 grayscale group-hover:scale-100',
+            )}
             />
           </div>
         </Link>
@@ -81,18 +85,30 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
           <Heart size={16} className={cx(wished && 'fill-accent text-accent')} />
         </button>
 
-        {product.stock <= 10 && (
-          <span className="absolute bottom-3 left-3 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-bold text-text ring-1 ring-white/12 backdrop-blur">
-            Only {product.stock} left
+        {soldOut ? (
+          <span className="absolute bottom-3 left-3 rounded-full bg-black/80 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-text ring-1 ring-white/15 backdrop-blur">
+            Out of stock
           </span>
+        ) : (
+          product.stock <= 10 && (
+            <span className="absolute bottom-3 left-3 rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-bold text-text ring-1 ring-white/12 backdrop-blur">
+              Only {product.stock} left
+            </span>
+          )
         )}
 
         <div className="absolute inset-x-3 bottom-3 translate-y-3 opacity-0 transition-all duration-400 group-hover:translate-y-0 group-hover:opacity-100 max-sm:translate-y-0 max-sm:opacity-100">
           <button
             onClick={() => add(product.id)}
-            className="flex w-full items-center justify-center gap-2 rounded-full bg-accent px-4 py-2.5 text-xs font-semibold text-text shadow-lift backdrop-blur transition hover:bg-accent"
+            disabled={soldOut}
+            className={cx(
+              'flex w-full items-center justify-center gap-2 rounded-full px-4 py-2.5 text-xs font-semibold shadow-lift backdrop-blur transition',
+              soldOut
+                ? 'cursor-not-allowed bg-black/70 text-text-muted ring-1 ring-white/15'
+                : 'bg-accent text-bg hover:bg-accent-2',
+            )}
           >
-            <ShoppingBag size={14} /> Add to cart
+            {soldOut ? 'Out of stock' : <><ShoppingBag size={14} /> Add to cart</>}
           </button>
         </div>
       </div>
@@ -100,7 +116,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       <div className="flex flex-1 flex-col px-1 pt-4">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-text-dim">
           <span>{product.brand}</span>
-          <span className="h-1 w-1 rounded-full bg-bg-2-300" />
+          <span className="h-1 w-1 rounded-full bg-white/25" />
           <span>{product.category}</span>
         </div>
         <h3 className="mt-1.5 font-display text-[17px] font-semibold leading-snug text-text">

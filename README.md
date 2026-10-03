@@ -48,6 +48,21 @@ The storefront auto-detects the API: with `VITE_API_URL` unset it probes the sam
 so an Express-hosted build runs live and the static GitHub Pages build transparently falls
 back to seeded demo data (the admin dashboard says which mode you are in).
 
+Orders, payments, staff accounts and newsletter sign-ups live in
+`server/data/db.json` by default, or in **any managed Postgres (Neon by default)** when
+`DATABASE_URL` is set — apply [`supabase/schema.sql`](supabase/schema.sql) once and the same
+API runs on a host with no disk. Staff photos are served from the host's disk, or from
+Supabase Storage if you ever configure it.
+`npm run verify:pg` boots a real throwaway PostgreSQL server and checks both backends end to
+end. On the client side, `npm run verify:store` and `npm run verify:ui` run the real cart store
+and the real components in a jsdom window — 31 checks covering the sold-out, nav-highlight and
+cart-maths paths. All three use dev-only packages, installed with `npm i --no-save`; see
+[DEPLOYMENT.md](DEPLOYMENT.md) §9. Outgoing mail (ZeptoMail), the mailing list (Campaigns) and agent-handled delivery
+tickets (Desk) are wired in `server/lib/zoho.mjs` and stay inert until their keys are set.
+
+Deployment: which provider does which job, and the exact configuration for each, is in
+[DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Tech stack
 
 | Concern | Choice |
@@ -59,7 +74,8 @@ back to seeded demo data (the admin dashboard says which mode you are in).
 | Animation | Framer Motion |
 | Icons | Lucide |
 | Routing | React Router 7 |
-| Backend | Express 4 (JSON-file store, JWT, bcrypt, multer) |
+| Backend | Express 4 (JSON-file **or** Postgres store — Neon, Supabase, … — JWT, bcrypt, multer) |
+| Deploy | GitHub Pages (storefront) + any Node host for the API — see [DEPLOYMENT.md](DEPLOYMENT.md) |
 
 ## Getting started
 

@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs'
 import { ah, unauthorized, rateLimit, isEmail } from '../lib/http.mjs'
 import { signToken, publicUser, requireAuth } from '../lib/auth.mjs'
 
-export function authRoutes(db) {
+export function authRoutes(store) {
   const r = Router()
 
   r.post(
@@ -15,7 +15,7 @@ export function authRoutes(db) {
       const password = String(req.body?.password ?? '')
       if (!isEmail(email) || !password) throw unauthorized('Email and password are required.')
 
-      const user = db.state.users.find((u) => u.email === email)
+      const user = await store.users.byEmail(email)
       // Same message for unknown email and wrong password so responses don't leak accounts.
       if (!user || !bcrypt.compareSync(password, user.passwordHash)) {
         throw unauthorized('Wrong email or password.')
@@ -29,7 +29,7 @@ export function authRoutes(db) {
     '/me',
     requireAuth,
     ah(async (req, res) => {
-      const user = db.state.users.find((u) => u._id === req.user.sub)
+      const user = await store.users.byId(req.user.sub)
       if (!user) throw unauthorized('Account no longer exists.')
       res.json(publicUser(user))
     }),
