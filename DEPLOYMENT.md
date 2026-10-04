@@ -93,7 +93,8 @@ needed to run the shop.
 | **A Node host** | `server/` — the Express API | Express 4 + multer + bcryptjs need Node, not an edge runtime. Render / Railway / Fly / a $5 VPS all work. |
 | **Zoho** | ZeptoMail receipts, Campaigns mailing list, Desk tickets | All three are wired in `server/lib/zoho.mjs` and inert until their keys exist. |
 | **Cloudflare** | Optional, later | DNS + CDN in front of the Pages domain, and R2 for the 79 MB of product photos (zero egress fees). `wrangler.jsonc` is already correct if you ever want to move the SPA there. |
-| **Vercel / MongoDB** | Not used | Vercel would only duplicate Pages; MongoDB Atlas M0 (512 MB, no transactions, Data API EOL Sept 2025) gives less than Supabase for the same money. |
+| **Vercel** | A second copy of the same static storefront | Connected to this repo. The SPA is provider-agnostic, so it deploys unchanged; only the **schema** of `vercel.json` bites — see §8c. |
+| **MongoDB Atlas** | Not used | M0 (512 MB, no transactions, Data API EOL Sept 2025) gives less than Neon for the same money. |
 
 ### Cost & caveats (free tiers, verified 2026)
 
@@ -297,7 +298,8 @@ now exists in Zoho Desk; moving the acknowledgement into the `orders` row is a s
 | `scripts/lib/{ts-resolve,register-ts}.mjs` | lets the Node checks import `src/` as shipped |
 | `src/lib/api.ts`, `src/pages/Checkout.tsx` | send `handledBy` |
 | `.github/workflows/deploy.yml` | deploy `main`, Node 22, `VITE_API_URL` from a secret |
-| `vercel.json` | unused for now, ready if you move the SPA to Vercel |
+| `scripts/verify-config.mjs` | `npm run verify:config` — 10 checks on the deploy configs |
+| `vercel.json` | static-SPA config for Vercel: `framework: vite`, the SPA catch-all rewrite, cache headers. **Strict JSON only** — see §8c |
 
 ## 8. UI/UX audit
 
@@ -346,6 +348,26 @@ supplier CDN retired — every product `<img>` falls back to
 `public/brand/photo-placeholder.svg` instead of the browser's broken-image icon;
 three new `npm run verify:ui` checks cover that path.
 
+### 8c. Vercel build failed on `vercel.json`
+
+```
+Build Failed
+The `vercel.json` schema validation failed with the following message:
+  should NOT have additional property `//`
+```
+
+`vercel.json` had a `"//"` key holding a note. `tsconfig.json` and
+`wrangler.jsonc` are read as JSONC and tolerate that; **`vercel.json` is not** —
+Vercel validates it against a strict schema (`additionalProperties: false`) and
+refuses to build at all, before `npm run build` runs. The note moved here (the
+constraint it describes is §2), and the file is plain JSON again.
+
+`npm run verify:config` now checks it: strict parse, no comment keys anywhere in
+the tree, pinned `$schema`, the build command and output directory, rewrite and
+header shapes, that the SPA catch-all rewrite is present, and that nothing tries
+to serve `/api` from this deployment. It runs in the Pages workflow alongside
+`verify:catalog`, so a bad config fails CI instead of a dashboard minutes later.
+
 ## 9. Local development is unchanged
 
 ```bash
@@ -354,9 +376,10 @@ npm run verify:pg    # 78 checks against a real throwaway PostgreSQL
 npm run verify:store # 15 checks against the real cart store
 npm run verify:ui    # 19 checks against the rendered DOM
 npm run verify:catalog # 14 checks on src/lib/catalog.ts (no dev deps needed)
+npm run verify:config  # 10 checks on vercel.json / the deploy config
 ```
 
-`verify:catalog` runs on plain Node. `verify:pg`, `verify:store` and `verify:ui`
+`verify:catalog` and `verify:config` run on plain Node. `verify:pg`, `verify:store` and `verify:ui`
 use dev-only dependencies that are deliberately not in `package.json`, so a
 normal `npm install` stays light:
 
