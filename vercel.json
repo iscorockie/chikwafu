@@ -1,12 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "//": "Static Vite SPA. The Express API in server/ must NOT be deployed here until its persistence moves off disk — see DEPLOYMENT.md §2 and §5.",
   "framework": "vite",
   "installCommand": "npm ci",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://chikwafu-api.onrender.com/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [

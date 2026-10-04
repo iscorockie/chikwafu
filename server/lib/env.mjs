@@ -49,6 +49,30 @@ export const config = {
   maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 5 * 1024 * 1024),
   /** Serve the built storefront from ../dist alongside the API. */
   serveStatic: bool(process.env.SERVE_STATIC, true),
+  /**
+   * Browser origins allowed to call the API from elsewhere — the Vercel copy and
+   * the GitHub Pages copy both live on a different host from the API, so a
+   * storefront that talks to it directly needs its origin listed here.
+   * Empty (the default) keeps the old `*` behaviour. `*` may also be listed
+   * explicitly. Origins only — scheme + host, no path, no trailing slash.
+   */
+  corsOrigins: (process.env.CORS_ORIGINS ?? '')
+    .split(',')
+    .map((raw) => {
+      const entry = raw.trim()
+      if (!entry || entry === '*') return entry
+      /* A browser's Origin header is scheme + host + port and never carries a
+         path, so normalise what an operator pastes — a full site URL such as
+         https://iscorockie.github.io/chikwafu/ becomes https://iscorockie.github.io.
+         Anything that is not a URL is kept as typed, so a typo shows up in the
+         CORS log line instead of silently matching nothing. */
+      try {
+        return new URL(entry).origin
+      } catch {
+        return entry.replace(/\/$/, '')
+      }
+    })
+    .filter(Boolean),
   /** Simulated gateway: set to 'live' to POST to the real ZengaPay API. */
   zengaPayMode: process.env.ZENGAPAY_MODE ?? 'sandbox',
   zengaPayApiKey: process.env.ZENGAPAY_API_KEY ?? '',

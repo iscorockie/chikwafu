@@ -46,7 +46,9 @@ npm run server      # API + built storefront on :5000
 
 The storefront auto-detects the API: with `VITE_API_URL` unset it probes the same origin,
 so an Express-hosted build runs live and the static GitHub Pages build transparently falls
-back to seeded demo data (the admin dashboard says which mode you are in).
+back to seeded demo data (the admin dashboard says which mode you are in). The probe is
+bounded and then retried in the background for ~50 s, so a free-tier API host that is still
+waking up does not leave the storefront stuck in demo mode.
 
 Orders, payments, staff accounts and newsletter sign-ups live in
 `server/data/db.json` by default, or in **any managed Postgres (Neon by default)** when
@@ -54,14 +56,18 @@ Orders, payments, staff accounts and newsletter sign-ups live in
 API runs on a host with no disk. Staff photos are served from the host's disk, or from
 Supabase Storage if you ever configure it.
 `npm run verify:pg` boots a real throwaway PostgreSQL server and checks both backends end to
-end. On the client side, `npm run verify:store` and `npm run verify:ui` run the real cart store
-and the real components in a jsdom window — 31 checks covering the sold-out, nav-highlight and
-cart-maths paths. All three use dev-only packages, installed with `npm i --no-save`; see
+end, plus the CORS gate the split deployment needs. On the client side, `npm run verify:store` and `npm run verify:ui` run the real cart store
+and the real components in a jsdom window — 34 checks covering the sold-out, nav-highlight,
+cart-maths and broken-photo paths — while `npm run verify:catalog` audits the 1,797-product
+data file itself (unique slugs, photos that resolve, no HTML entities leaking into copy).
+The browser-side checks use dev-only packages, installed with `npm i --no-save`; see
 [DEPLOYMENT.md](DEPLOYMENT.md) §9. Outgoing mail (ZeptoMail), the mailing list (Campaigns) and agent-handled delivery
 tickets (Desk) are wired in `server/lib/zoho.mjs` and stay inert until their keys are set.
 
 Deployment: which provider does which job, and the exact configuration for each, is in
-[DEPLOYMENT.md](DEPLOYMENT.md).
+[DEPLOYMENT.md](DEPLOYMENT.md) — including the live setup (§10): storefront on Vercel,
+API on Render (`render.yaml`), data on Neon, with `/api` proxied through `vercel.json` so the
+browser only ever talks to one origin.
 
 ## Tech stack
 

@@ -93,7 +93,8 @@ needed to run the shop.
 | **A Node host** | `server/` — the Express API | Express 4 + multer + bcryptjs need Node, not an edge runtime. Render / Railway / Fly / a $5 VPS all work. |
 | **Zoho** | ZeptoMail receipts, Campaigns mailing list, Desk tickets | All three are wired in `server/lib/zoho.mjs` and inert until their keys exist. |
 | **Cloudflare** | Optional, later | DNS + CDN in front of the Pages domain, and R2 for the 79 MB of product photos (zero egress fees). `wrangler.jsonc` is already correct if you ever want to move the SPA there. |
-| **Vercel / MongoDB** | Not used | Vercel would only duplicate Pages; MongoDB Atlas M0 (512 MB, no transactions, Data API EOL Sept 2025) gives less than Supabase for the same money. |
+| **Vercel** | A second copy of the same static storefront | Connected to this repo. The SPA is provider-agnostic, so it deploys unchanged; only the **schema** of `vercel.json` bites — see §8c. |
+| **MongoDB Atlas** | Not used | M0 (512 MB, no transactions, Data API EOL Sept 2025) gives less than Neon for the same money. |
 
 ### Cost & caveats (free tiers, verified 2026)
 
@@ -290,13 +291,16 @@ now exists in Zoho Desk; moving the acknowledgement into the `orders` row is a s
 | `server/lib/env.mjs` | new config, no hard failure on a read-only disk |
 | `server/routes/{orders,payments,newsletter,auth,media}.mjs` | async store calls, Zoho hooks, `handledBy` |
 | `server/index.mjs` | `openStore()`, `store` field in `/api/health`, clean shutdown |
-| `scripts/verify-postgres.mjs` | `npm run verify:pg` — 78 checks against real PostgreSQL |
+| `scripts/verify-postgres.mjs` | `npm run verify:pg` — 85 checks against real PostgreSQL |
 | `scripts/verify-store.mjs` | `npm run verify:store` — 15 checks against the real cart store |
-| `scripts/verify-ui.mjs` | `npm run verify:ui` — 16 checks against the rendered DOM |
+| `scripts/verify-ui.mjs` | `npm run verify:ui` — 22 checks against the rendered DOM |
+| `scripts/verify-catalog.mjs` | `npm run verify:catalog` — 14 checks on the product data |
 | `scripts/lib/{ts-resolve,register-ts}.mjs` | lets the Node checks import `src/` as shipped |
 | `src/lib/api.ts`, `src/pages/Checkout.tsx` | send `handledBy` |
 | `.github/workflows/deploy.yml` | deploy `main`, Node 22, `VITE_API_URL` from a secret |
-| `vercel.json` | unused for now, ready if you move the SPA to Vercel |
+| `scripts/verify-config.mjs` | `npm run verify:config` — 11 checks on the deploy configs |
+| `render.yaml` | Render blueprint for the API (§10) — `chikwafu-api`, Frankfurt, free plan |
+| `vercel.json` | static-SPA config for Vercel: `framework: vite`, the SPA catch-all rewrite, cache headers. **Strict JSON only** — see §8c |
 
 ## 8. UI/UX audit
 
@@ -326,17 +330,59 @@ Contrast figures are WCAG relative luminance computed from the hexes in
 this environment — so layout, animation and the real Pages subpath are untested
 by eye.
 
+### 8b. Catalogue data audit
+
+A later pass over `src/lib/catalog.ts` — the 1,797-product file the shop, the
+facets and the Express API all read — found four defects that were reaching real
+screens:
+
+| Defect | Fix |
+| --- | --- |
+| Two Galaxy Tab A9 listings shared the slug `samsung-galaxy-tab-a9-128gb-218`, so the A9+ had no page of its own (`getProduct` returns the first match) | the A9+ now lives at `/product/samsung-galaxy-tab-a9-plus-128gb` |
+| Nine products (Green Lion, Porodo, JBL) carried the importer's placeholder photo URL `https://static.wixstatic.com/media/file.jpg`, which answers **403** — a broken image on the tile, the product page and the cart, plus a failed request in the console | the grid image now points at the same supplier CDN file the gallery already used; the JBL Tune 670NC listing switches to the local `public/jbl` photos |
+| 1,254 HTML entities (`&amp;`, `&quot;`, `&lt;`, `&gt;`) sat in names, taglines and specs and rendered literally — `Samsung 43&quot; T5300`, `Secure Folder &amp; Privacy Dashboard`, `Charging Time: &lt;3 Hours` | decoded to plain text in the data, where React escapes them correctly |
+| Mojibake from a supplier export — `Itâ€™s rated IPX7 waterproof` | `It's rated IPX7 waterproof` |
+
+All four are now asserted by `npm run verify:catalog` (14 checks, no dev
+dependencies). And because a photo can still fail later — a device offline, a
+supplier CDN retired — every product `<img>` falls back to
+`public/brand/photo-placeholder.svg` instead of the browser's broken-image icon;
+three new `npm run verify:ui` checks cover that path.
+
+### 8c. Vercel build failed on `vercel.json`
+
+```
+Build Failed
+The `vercel.json` schema validation failed with the following message:
+  should NOT have additional property `//`
+```
+
+`vercel.json` had a `"//"` key holding a note. `tsconfig.json` and
+`wrangler.jsonc` are read as JSONC and tolerate that; **`vercel.json` is not** —
+Vercel validates it against a strict schema (`additionalProperties: false`) and
+refuses to build at all, before `npm run build` runs. The note moved here (the
+constraint it describes is §2), and the file is plain JSON again.
+
+`npm run verify:config` now checks it: strict parse, no comment keys anywhere in
+the tree, pinned `$schema`, the build command and output directory, rewrite and
+header shapes, that the SPA catch-all rewrite is present, and that nothing tries
+to serve `/api` from this deployment. It runs in the Pages workflow alongside
+`verify:catalog`, so a bad config fails CI instead of a dashboard minutes later.
+
 ## 9. Local development is unchanged
 
 ```bash
 npm run dev:all      # Vite :5173 (proxies /api) + API :5000 on the JSON store
-npm run verify:pg    # 78 checks against a real throwaway PostgreSQL
+npm run verify:pg    # 85 checks against a real throwaway PostgreSQL
 npm run verify:store # 15 checks against the real cart store
-npm run verify:ui    # 16 checks against the rendered DOM
+npm run verify:ui    # 22 checks against the rendered DOM
+npm run verify:catalog # 14 checks on src/lib/catalog.ts (no dev deps needed)
+npm run verify:config  # 11 checks on vercel.json / the deploy config
 ```
 
-`verify:pg`, `verify:store` and `verify:ui` use dev-only dependencies that are
-deliberately not in `package.json`, so a normal `npm install` stays light:
+`verify:catalog` and `verify:config` run on plain Node. `verify:pg`, `verify:store` and `verify:ui`
+use dev-only dependencies that are deliberately not in `package.json`, so a
+normal `npm install` stays light:
 
 ```bash
 npm i --no-save embedded-postgres            # verify:pg
@@ -348,3 +394,93 @@ Each script says what it is missing and exits with code 2 instead of failing.
 
 Nothing above changes the default experience: with no `DATABASE_URL` the API uses
 `server/data/db.json` exactly as before.
+
+---
+
+## 10. Going live: storefront on Vercel, API on Render, data on Neon
+
+The storefront and the API are now deployed separately. Two hosts, one hop:
+the browser calls **`https://<vercel-app>/api/...`**, `vercel.json` rewrites that
+to the API, so from the app's point of view the API is same-origin — no CORS, no
+build-time URL, and the same auto-detection that works locally keeps working.
+
+```
+browser ──▶ Vercel (static SPA)            /            → index.html
+                 └── rewrite /api/*  ──▶  Render (Express API)  ──▶  Neon (Postgres)
+```
+
+### 10.1 Neon — the database
+
+1. Create a project (region closest to the API; the blueprint uses Frankfurt).
+2. Copy the **pooled** connection string:
+   `postgresql://user:pass@ep-xxxx-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require`
+3. Apply the schema once — it is idempotent:
+   ```bash
+   psql "$DATABASE_URL" -f supabase/schema.sql
+   ```
+   `npm run verify:pg` already proves this SQL against a real PostgreSQL, so a
+   failure here means the connection string, not the schema.
+
+Free-tier reality check: 0.5 GB, 100 CU-hours/month, hard cut-offs, and Neon
+suspends an idle project — the API wakes it on the next query.
+
+### 10.2 Render — the API
+
+1. Render → **New → Blueprint** → pick this repository. `render.yaml` creates
+   `chikwafu-api` in Frankfurt on the free plan. The name matters: it decides the
+   URL (`https://chikwafu-api.onrender.com`) that `vercel.json` proxies to.
+2. Paste the secrets it asks for:
+   | Key | Value |
+   | --- | --- |
+   | `DATABASE_URL` | the Neon pooled string from §10.1 |
+   | `CORS_ORIGINS` | leave blank if the Vercel rewrite is doing the proxying; otherwise the storefront origin, e.g. `https://chikwafu.vercel.app` |
+   | `STORE_URL` | where the storefront is published (links in outgoing email) |
+   | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | the staff account seeded on first boot — change the password before sharing the URL |
+   `JWT_SECRET` is generated by Render; `SERVE_STATIC=false` because there is no
+   `dist/` on this host.
+3. Deploy, then check the boot log says `Data postgres://… (Postgres)` — **not**
+   `db.json`. If it says `db.json`, `DATABASE_URL` did not reach the process and
+   every order is landing on ephemeral disk.
+4. Confirm from outside:
+   ```bash
+   curl -s https://chikwafu-api.onrender.com/api/health
+   # {"status":"ok","name":"chikwafu-api","products":1797,"orders":0,"store":"postgres",…}
+   ```
+   Free instances sleep after 15 idle minutes; the first call takes 30-60 s.
+
+### 10.3 Vercel — the storefront
+
+1. Import the repo (framework auto-detects `vite`; `vercel.json` supplies the
+   rest). Production branch: `main`.
+2. No environment variables are required — the `/api` rewrite makes the API
+   same-origin. (Set `VITE_API_URL` only if you ever want the bundle to call the
+   API host directly instead.)
+3. Deploy, then verify in the browser: open the site, tap a product, add it to
+   the cart and check out. `Admin → sign in` should say *Authenticating against
+   chikwafu-api.onrender.com* — proof the app found the API. The order should
+   appear under **Admin → Orders** and in Neon.
+
+### 10.4 What changed in the code for this
+
+| Change | Why |
+| --- | --- |
+| `vercel.json`: `/api/(.*)` → `https://chikwafu-api.onrender.com/api/$1`, listed **before** the SPA catch-all | rewrite order decides; reversed, every API call would return `index.html` |
+| `src/lib/api.ts`: the boot probe is bounded, then retries after 6 s / 15 s / 25 s | a Render instance that is still waking up must not leave the storefront in demo mode for the session |
+| `src/lib/api.ts`: `import.meta.env` read defensively | the module now imports outside Vite too (the checks, and any future Node consumer) |
+| `server`: `CORS_ORIGINS` | for the direct (no-rewrite) setup; entries are normalised to origins, unlisted origins are served without CORS headers and logged once |
+| `render.yaml` | the API's build, start command, health check and env, reviewed in git rather than clicked together |
+| `npm run verify:config` + new `verify:ui` / `verify:pg` checks | the rewrite order, the probe/retry behaviour and the CORS gate are asserted, not assumed |
+
+### 10.5 If the storefront shows "demo mode"
+
+In order of likelihood:
+
+1. **The API is asleep and the retry window (≈50 s) has not elapsed yet.** Wait
+   a minute and reload; the background retries flip the app live on their own.
+2. **`/api/health` on the Vercel domain returns HTML** — the rewrite is missing
+   or ordered after the catch-all. `npm run verify:config` catches both.
+3. **The API itself is down** — check `https://chikwafu-api.onrender.com/api/health`
+   directly; a sleeping instance is normal, a 502 is not.
+4. **The deployment is the GitHub Pages one** — Pages has no server, so it stays
+   in demo mode by design. Point `VITE_API_URL` at the API and rebuild if you
+   want that copy live too.

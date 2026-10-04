@@ -1,0 +1,55 @@
+# Render blueprint — the Chikwafu Express API.
+#
+# Render → New → Blueprint → point at this repo. It reads this file, creates
+# `chikwafu-api` (so the URL is https://chikwafu-api.onrender.com, which is the
+# host `vercel.json` proxies /api to), and asks for the secret values below on
+# the first deploy.
+#
+# Runbook with the Neon half of this setup: DEPLOYMENT.md §10.
+services:
+  - type: web
+    name: chikwafu-api
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: server
+    buildCommand: npm install --omit=dev
+    startCommand: node index.mjs
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22.12.0"
+      # Managed Postgres. Paste the Neon *pooled* connection string:
+      #   postgresql://user:pass@ep-xxxx-pooler.eu-central-1.aws.neon.tech/neondb?sslmode=require
+      # Apply supabase/schema.sql to it once before the first boot.
+      - key: DATABASE_URL
+        sync: false
+      # Signs staff sessions. Generated once by Render and kept.
+      - key: JWT_SECRET
+        generateValue: true
+      # No dist/ on this host: the API serves /api only.
+      - key: SERVE_STATIC
+        value: "false"
+      # The storefront lives on another host, so name it here. Comma-separated;
+      # a full site URL is reduced to its origin (an Origin header has no path).
+      # Leave this out if you keep the /api rewrite in vercel.json instead —
+      # proxied calls are same-origin and need no CORS at all.
+      - key: CORS_ORIGINS
+        sync: false
+      # Where links in outgoing email should point.
+      - key: STORE_URL
+        sync: false
+      # Neon's free tier allows a small pool; 3 is plenty for a single instance.
+      - key: PG_POOL_MAX
+        value: "3"
+      # Seeded staff account. Change the password before telling anyone the URL.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ADMIN_NAME
+        value: Chikwafu Admin
+      # Simulated mobile-money gateway until ZengaPay keys exist.
+      - key: ZENGAPAY_MODE
+        value: sandbox
