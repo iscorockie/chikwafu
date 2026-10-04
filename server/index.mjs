@@ -21,7 +21,35 @@ async function main() {
   const app = express()
   app.disable('x-powered-by')
   app.set('trust proxy', true)
-  app.use(cors())
+
+  /*
+   * CORS. Unset CORS_ORIGINS keeps the development default (`*`). In production
+   * the storefront usually sits on a different host (Vercel, GitHub Pages), so
+   * either list its origin here or proxy /api through that host's own rewrites —
+   * a same-origin fetch needs no CORS at all.
+   */
+  const allowAll = config.corsOrigins.length === 0 || config.corsOrigins.includes('*')
+  if (allowAll) {
+    app.use(cors())
+  } else {
+    const warned = new Set()
+    app.use(
+      cors({
+        origin(origin, cb) {
+          // No Origin header: curl, health checks, server-to-server.
+          if (!origin || config.corsOrigins.includes(origin)) return cb(null, true)
+          if (!warned.has(origin)) {
+            warned.add(origin)
+            console.warn(`[cors] blocked ${origin} — add it to CORS_ORIGINS to allow it`)
+          }
+          // Serve without the CORS headers rather than erroring: the browser
+          // blocks the response and the request is logged server-side.
+          return cb(null, false)
+        },
+        credentials: false,
+      }),
+    )
+  }
   app.use(express.json({ limit: '256kb' }))
   app.use(attachUser)
 

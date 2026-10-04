@@ -104,9 +104,30 @@ if (config) {
   ok('the SPA catch-all rewrite is present', spaRewrite,
     'deep links like /shop or /admin/orders would 404 on refresh without it')
 
-  const apiRewrite = (config.rewrites ?? []).some((r) => /api/.test(r.source ?? ''))
-  ok('no rewrite tries to serve the Express API from Vercel', !apiRewrite,
-    '/api must stay off this deployment until the API runs on a host with a database — DEPLOYMENT.md §2')
+  /* /api is proxied to the Express API when it runs somewhere with a database
+     (DEPLOYMENT.md §10). Vercel cannot execute it — a rewrite must point off
+     this deployment, and must parse as an absolute https origin. */
+  const apiRewrites = (config.rewrites ?? []).filter((r) => /^\/api(\/|$)/.test(r.source ?? ''))
+  const apiOk = apiRewrites.every((r) => {
+    try {
+      const dest = new URL(r.destination)
+      return dest.protocol === 'https:' && !dest.hostname.endsWith('vercel.app')
+    } catch {
+      return false
+    }
+  })
+  ok('any /api rewrite proxies to an external https host', apiOk,
+    apiRewrites.map((r) => `"${r.source}" → "${r.destination}"`).join(', ') ||
+      'no /api rewrite — the storefront will stay in demo mode')
+
+  const apiLast = (() => {
+    const list = config.rewrites ?? []
+    const spa = list.findIndex((r) => r.destination === '/index.html')
+    const api = list.findIndex((r) => /^\/api(\/|$)/.test(r.source ?? ''))
+    return api === -1 || spa === -1 ? true : api < spa // rewrites apply in order
+  })()
+  ok('the /api rewrite is listed before the SPA catch-all', apiLast,
+    'reversed, every /api call would be answered with index.html')
 }
 
 console.log(`\n${failures === 0 ? 'PASS' : 'FAIL'} — ${failures} failing check(s)`)

@@ -154,5 +154,50 @@ await act(async () => photo.dispatchEvent(new dom.window.Event('error')))
 ok('…and the fallback cannot loop back into itself',
   photo.getAttribute('src') === PHOTO_PLACEHOLDER && photo.dataset.placeholder === 'true')
 
+/* ── API detection must survive a sleeping free-tier host ──────────────── */
+/* `/api/health` is probed once at boot (see main.tsx). A Render free instance
+   takes up to a minute to wake, so the boot probe has to answer immediately and
+   keep retrying in the background — otherwise the first visit of the day leaves
+   the storefront in demo mode for the whole session. This drives the real
+   module: the stub is installed *before* the import, because detection starts
+   the moment `lib/api.ts` is evaluated. */
+const realFetch = globalThis.fetch
+let probes = 0
+globalThis.fetch = async (input, init) => {
+  const url = String(input)
+  if (!url.includes('/api/health')) return realFetch(input, init)
+  probes += 1
+  if (probes < 2) throw new TypeError('Failed to fetch') // instance asleep, or offline
+  return new Response(JSON.stringify({ status: 'ok', name: 'chikwafu-api' }), {
+    status: 200, headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+/* Read `API_ENABLED` off the namespace: it is an exported `let`, and
+   destructuring would snapshot the value instead of following the live binding. */
+const apiModule = await import('../src/lib/api.ts')
+const { apiReady } = apiModule
+const settled = await Promise.race([
+  apiReady.then(() => 'settled'),
+  new Promise((resolve) => setTimeout(() => resolve('timeout'), 500)),
+])
+ok('the boot probe answers without blocking the app', settled === 'settled',
+  'apiReady did not resolve within 500 ms — a slow host must not delay first paint')
+
+const waitFor = async (predicate, ms) => {
+  const deadline = Date.now() + ms
+  while (Date.now() < deadline) {
+    if (predicate()) return true
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+  return predicate()
+}
+ok('…a failed probe schedules a retry',
+  await waitFor(() => probes >= 2, 12_000),
+  `${probes} probe(s) in 12 s — a sleeping instance would mean demo mode all session`)
+ok('…and the storefront goes live when the host wakes',
+  apiModule.API_ENABLED === true && probes >= 2, `API_ENABLED=${apiModule.API_ENABLED}`)
+globalThis.fetch = realFetch
+
 console.log(`\n${failures === 0 ? 'PASS' : 'FAIL'} — ${failures} failing check(s)`)
 process.exit(failures === 0 ? 0 : 1)

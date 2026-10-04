@@ -26,7 +26,15 @@
 
 import { useSyncExternalStore } from 'react'
 
-const CONFIGURED: string = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '')
+/**
+ * Vite inlines `import.meta.env` at build time; it does not exist when this
+ * module is imported by plain Node (the verification scripts, or the Express
+ * server). Same guard as `lib/format.ts`: read it defensively and fall back to
+ * "no configured API", which is the same state a Pages build with no
+ * VITE_API_URL is in.
+ */
+const ENV = (import.meta as { env?: { VITE_API_URL?: string } }).env
+const CONFIGURED: string = (ENV?.VITE_API_URL ?? '').replace(/\/$/, '')
 
 export let API_URL: string = CONFIGURED
 export let API_ENABLED: boolean = CONFIGURED.length > 0
@@ -47,18 +55,41 @@ export function useApiEnabled(): boolean {
   )
 }
 
+/* How long one `/api/health` probe may take, and how long we keep trying. */
+const PROBE_TIMEOUT_MS = 4000
+const RETRY_DELAYS_MS = [6_000, 15_000, 25_000]
+
 /**
  * Resolves once, early in boot (see main.tsx). Same-origin detection lets the
- * Express-hosted build go live automatically while GitHub Pages keeps demo mode.
+ * Express-hosted build go live automatically while a static build keeps demo
+ * mode.
+ *
+ * It resolves on the *first* probe so nothing waits on the network; any
+ * remaining attempts run in the background.
+ *
+ * Free-tier API hosts put an idle service to sleep — Render takes 30-60 s to
+ * wake one. A single probe at boot would therefore report "no API" on the first
+ * visit of the day and leave the storefront in demo mode for the whole session,
+ * even though the API answers a minute later. So a failed boot probe keeps
+ * retrying with a widening gap (~50 s of trying in total) and flips the store
+ * live the moment one answers — `useApiEnabled` subscribes, so the header,
+ * checkout, tracking and the admin sign-in all pick it up without a reload.
  */
 export const apiReady: Promise<boolean> = API_ENABLED
   ? Promise.resolve(true)
   : detectSameOriginApi()
 
 async function detectSameOriginApi(): Promise<boolean> {
+  const live = await probeApiHealth()
+  if (!live) void retrySameOriginApi()
+  return live
+}
+
+/** One attempt against `GET /api/health`. Exported so the checks can drive it. */
+export async function probeApiHealth(): Promise<boolean> {
   try {
     const res = await fetch('/api/health', {
-      signal: AbortSignal.timeout(2500),
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
       headers: { Accept: 'application/json' },
     })
     if (!res.ok) return false
@@ -68,9 +99,27 @@ async function detectSameOriginApi(): Promise<boolean> {
     API_ENABLED = true
     notify()
     return true
-  } catch {
+  } catch (err) {
+    /* A sleeping host, an offline device and a CORS rejection are all normal
+       here and must stay quiet. Anything else — a misconfiguration, a constant
+       declared after its first use — is a bug, not a missing API, so say so
+       instead of quietly reporting demo mode. */
+    if (!(err instanceof TypeError) && !(err instanceof DOMException)) {
+      console.error('[chikwafu] API probe failed unexpectedly', err)
+    }
     notify()
     return false
+  }
+}
+
+async function retrySameOriginApi(): Promise<void> {
+  for (const delay of RETRY_DELAYS_MS) {
+    await new Promise((resolve) => setTimeout(resolve, delay))
+    if (API_ENABLED) return
+    if (await probeApiHealth()) {
+      console.info('[chikwafu] live mode — the API woke up after detection had given up')
+      return
+    }
   }
 }
 

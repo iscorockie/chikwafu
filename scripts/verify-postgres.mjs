@@ -304,5 +304,75 @@ ok('[no-disk] the 503 explains both remedies',
 server.child.kill('SIGTERM')
 await new Promise((r) => setTimeout(r, 400))
 
+/* ── 4. Cross-origin storefront (Vercel/Pages → API on another host) ──────
+ * The storefront is deployed separately from the API, so the browser sends an
+ * `Origin` header and CORS decides whether the response is readable. Unset
+ * CORS_ORIGINS keeps the old `*`; a list must allow those origins and only
+ * those. (Same-origin calls — a proxy/rewrite — send no Origin at all.) ──── */
+console.log('\n── Cross-origin storefront ──')
+const ORIGIN = 'https://chikwafu.vercel.app'
+server = startServer({
+  ...pgEnv,
+  DATABASE_URL: '',
+  DATA_DIR: '/tmp/chikwafu-verify-cors',
+  UPLOAD_DIR: '/tmp/chikwafu-verify-cors-uploads',
+})
+await waitForHealth(server)
+
+const withOrigin = (origin, extra = {}) =>
+  fetch(`${BASE}/api/health`, { headers: { Origin: origin, ...extra } })
+
+let res = await withOrigin(ORIGIN)
+ok('[cors] no CORS_ORIGINS set → any origin is allowed (development default)',
+  res.headers.get('access-control-allow-origin') === '*',
+  `allow-origin=${res.headers.get('access-control-allow-origin')}`)
+server.child.kill('SIGTERM')
+await new Promise((r) => setTimeout(r, 400))
+
+server = startServer({
+  ...pgEnv,
+  DATABASE_URL: '',
+  DATA_DIR: '/tmp/chikwafu-verify-cors',
+  UPLOAD_DIR: '/tmp/chikwafu-verify-cors-uploads',
+  CORS_ORIGINS: `${ORIGIN}, https://iscorockie.github.io/chikwafu/`,
+})
+await waitForHealth(server)
+
+res = await withOrigin(ORIGIN)
+ok('[cors] a listed origin is allowed', res.headers.get('access-control-allow-origin') === ORIGIN,
+  `allow-origin=${res.headers.get('access-control-allow-origin')}`)
+
+/* The list holds a full site URL here (a path and a trailing slash). The Origin
+   header never has a path, so the entry has to be reduced to its origin or it
+   would match nothing. */
+res = await withOrigin('https://iscorockie.github.io')
+ok('[cors] a pasted site URL in the list is reduced to its origin',
+  res.headers.get('access-control-allow-origin') === 'https://iscorockie.github.io',
+  `allow-origin=${res.headers.get('access-control-allow-origin')}`)
+
+res = await withOrigin('https://not-chikwafu.example')
+ok('[cors] an unlisted origin gets no CORS headers',
+  res.headers.get('access-control-allow-origin') === null,
+  `allow-origin=${res.headers.get('access-control-allow-origin')}`)
+
+res = await fetch(`${BASE}/api/health`, {
+  method: 'OPTIONS',
+  headers: { Origin: ORIGIN, 'Access-Control-Request-Method': 'GET' },
+})
+ok('[cors] preflight answers for a listed origin',
+  res.status < 400 && res.headers.get('access-control-allow-origin') === ORIGIN,
+  `status=${res.status} allow-origin=${res.headers.get('access-control-allow-origin')}`)
+
+res = await fetch(`${BASE}/api/health`)
+ok('[cors] a request without an Origin still works (curl, health checks, proxies)',
+  res.ok, `status=${res.status}`)
+
+ok('[cors] the blocked origin is named in the server log',
+  server.logs.join('').includes('not-chikwafu.example'),
+  'an operator debugging a CORS rejection should find it in the logs')
+
+server.child.kill('SIGTERM')
+await new Promise((r) => setTimeout(r, 400))
+
 console.log(`\n${failures === 0 ? 'PASS' : 'FAIL'} — ${failures} failing check(s)`)
 process.exit(failures === 0 ? 0 : 1)
