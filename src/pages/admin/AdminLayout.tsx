@@ -25,7 +25,10 @@ export default function AdminLayout() {
   const loc = useLocation()
   const expiresAt = useAuth((s) => s.expiresAt)
   const signOut = useAuth((s) => s.signOut)
-  const authed = expiresAt > Date.now()
+  /* Captured once at mount so render stays pure; the timeout below still
+     signs the session out the moment it expires. */
+  const [mountedAt] = useState(() => Date.now())
+  const authed = expiresAt > mountedAt
 
   const adminOnline = usePresence((s) => s.adminOnline)
   const toggleAdmin = usePresence((s) => s.toggleAdmin)
@@ -35,7 +38,13 @@ export default function AdminLayout() {
     (o) => o.handledBy === 'agent' && o.status === 'delivered' && !acknowledged.includes(o.ref),
   ).length
 
-  useEffect(() => setOpen(false), [loc.pathname])
+  /* Close the mobile drawer on navigation — adjusted during render
+     (React's "adjust state when a prop changes" pattern). */
+  const [prevPath, setPrevPath] = useState(loc.pathname)
+  if (prevPath !== loc.pathname) {
+    setPrevPath(loc.pathname)
+    setOpen(false)
+  }
 
   // Expire the session in-place if the tab is left open past the window.
   useEffect(() => {

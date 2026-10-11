@@ -15,7 +15,16 @@
 
 @layer components {
   .container-x { @apply mx-auto w-full max-w-[1320px] px-5 sm:px-8 lg:px-12; }
-  .eyebrow { @apply text-[11px] font-extrabold uppercase tracking-[0.22em] text-accent; }
+  /* Eyebrow with the leading rule ornament — every section label in the app. */
+  .eyebrow {
+    @apply inline-flex items-center gap-2.5 text-[11px] font-extrabold uppercase tracking-[0.22em] text-accent;
+  }
+  .eyebrow::before {
+    content: ''; width: 18px; height: 2px; border-radius: 2px;
+    background: currentColor; flex: none;
+  }
+  /* Italic accent word inside display headlines ("…prepared meals & subscriptions"). */
+  .em { @apply font-medium italic text-accent; }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold
            transition-all duration-300 active:scale-[.97] disabled:opacity-50 disabled:pointer-events-none;

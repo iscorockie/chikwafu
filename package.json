@@ -18,6 +18,7 @@
     "verify:config": "node scripts/verify-config.mjs",
     "verify:store": "node --import ./scripts/lib/register-ts.mjs scripts/verify-store.mjs",
     "verify:ui": "node --import ./scripts/lib/register-ts.mjs scripts/verify-ui.mjs",
+    "verify:pages": "node --import ./scripts/lib/register-ts.mjs scripts/verify-pages.mjs",
     "postinstall": "node -e \"const{execSync}=require('node:child_process');try{execSync('npm install --no-audit --no-fund',{cwd:'server',stdio:'inherit'})}catch{}\" || true"
   },
   "dependencies": {

@@ -27,9 +27,16 @@ export default function ProductDetail() {
   const [reviewFilter, setReviewFilter] = useState(0)
   const [added, setAdded] = useState(false)
 
+  /* Same-product navigation resets the gallery/QTY/tab state — adjusted
+     during render (React's "adjust state when a prop changes" pattern). */
+  const [prevSlug, setPrevSlug] = useState(slug)
+  if (prevSlug !== slug) {
+    setPrevSlug(slug)
+    setShot(0); setQty(1); setTab('desc'); setReviewFilter(0)
+  }
+
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior })
-    setShot(0); setQty(1); setTab('desc'); setReviewFilter(0)
   }, [slug])
 
   const related = useMemo(

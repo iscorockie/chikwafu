@@ -61,7 +61,7 @@ export default function AdminLogin() {
           <span className="grid h-11 w-11 place-items-center rounded-full bg-accent/12 text-accent">
             <Lock size={19} />
           </span>
-          <h1 className="mt-4 font-display text-2xl font-black leading-tight">Staff sign in</h1>
+          <h1 className="mt-4 font-display text-2xl font-black leading-tight">Staff <span className="em">sign in</span></h1>
           <p className="mt-1.5 text-[13.5px] leading-relaxed text-text-muted">
             The Chikwafu admin dashboard is restricted to staff.
           </p>
