@@ -58,7 +58,8 @@ Supabase Storage if you ever configure it.
 `npm run verify:pg` boots a real throwaway PostgreSQL server and checks both backends end to
 end, plus the CORS gate the split deployment needs. On the client side, `npm run verify:store` and `npm run verify:ui` run the real cart store
 and the real components in a jsdom window — 34 checks covering the sold-out, nav-highlight,
-cart-maths and broken-photo paths — while `npm run verify:catalog` audits the 1,797-product
+cart-maths and broken-photo paths — while `npm run verify:pages` mounts every routed page and
+fails on any console error, empty render or crash. `npm run verify:catalog` audits the 1,797-product
 data file itself (unique slugs, photos that resolve, no HTML entities leaking into copy).
 The browser-side checks use dev-only packages, installed with `npm i --no-save`; see
 [DEPLOYMENT.md](DEPLOYMENT.md) §9. Outgoing mail (ZeptoMail), the mailing list (Campaigns) and agent-handled delivery

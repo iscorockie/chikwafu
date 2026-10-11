@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -14,6 +14,9 @@ const ease = [0.22, 1, 0.36, 1] as const
 
 export default function Dashboard() {
   const { orders, source, loading, error, refresh } = useAdminData()
+  /* Captured once at mount so render stays pure; the "last 30/14 days"
+     windows are relative to when the dashboard was opened. */
+  const [now] = useState(() => Date.now())
 
   const stats = useMemo(() => {
     const live = orders.filter((o) => o.status !== 'cancelled')
@@ -23,7 +26,7 @@ export default function Dashboard() {
     const processing = orders.filter((o) => o.status === 'processing').length
     const aov = live.length ? revenue / live.length : 0
 
-    const cut = Date.now() - 30 * 86400000
+    const cut = now - 30 * 86400000
     const last30 = live.filter((o) => +new Date(o.placedAt) >= cut)
     const prev30 = live.filter(
       (o) => +new Date(o.placedAt) < cut && +new Date(o.placedAt) >= cut - 30 * 86400000,
@@ -33,7 +36,7 @@ export default function Dashboard() {
     const growth = rPrev ? ((r30 - rPrev) / rPrev) * 100 : null
 
     return { revenue, units, pending, processing, aov, count: live.length, r30, growth }
-  }, [orders])
+  }, [orders, now])
 
   const byStatus = useMemo(() => {
     const keys: OrderStatus[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled']
@@ -49,7 +52,7 @@ export default function Dashboard() {
   const daily = useMemo(() => {
     const days: { label: string; total: number }[] = []
     for (let i = 13; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000)
+      const d = new Date(now - i * 86400000)
       const key = d.toDateString()
       const total = orders
         .filter((o) => o.status !== 'cancelled' && new Date(o.placedAt).toDateString() === key)
@@ -57,7 +60,7 @@ export default function Dashboard() {
       days.push({ label: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), total })
     }
     return days
-  }, [orders])
+  }, [orders, now])
   const peak = Math.max(...daily.map((d) => d.total), 1)
 
   const topProducts = useMemo(() => {

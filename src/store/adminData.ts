@@ -67,8 +67,9 @@ export function useAdminData(): AdminData {
 
   const load = useCallback(async () => {
     // Wait for same-origin detection so an Express-hosted build never flashes
-    // demo data before the live ledger arrives.
-    const enabled = API_ENABLED || (await apiReady)
+    // demo data before the live ledger arrives. The unconditional await also
+    // keeps every setState off the effect's synchronous path (set-state-in-effect).
+    const enabled = await (API_ENABLED ? Promise.resolve(true) : apiReady)
     if (!enabled) return
     setLoading(true)
     setError(null)
@@ -85,7 +86,10 @@ export function useAdminData(): AdminData {
     }
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  /* Kick off the first load on a microtask rather than synchronously in the
+     effect body (set-state-in-effect). `refresh()` still calls `load()`
+     directly from button events, where synchronous setState is fine. */
+  useEffect(() => { void Promise.resolve().then(load) }, [load])
 
   const usingApi = API_ENABLED && remote !== null
   const orders = usingApi ? remote : localOrders

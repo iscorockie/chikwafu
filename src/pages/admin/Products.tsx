@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowUpDown, ChevronLeft, ChevronRight, ExternalLink, ImagePlus, Search, X, Zap } from 'lucide-react'
 import { uploadMedia } from '../../lib/api'
@@ -30,7 +30,14 @@ export default function AdminProducts() {
     finally { setUploading(false) }
   }
 
-  useEffect(() => { setPage(1) }, [q, cat, brand, sort, asc])
+  /* Reset to page 1 when any filter changes — adjusted during render
+     (React's "adjust state when a prop changes" pattern). */
+  const filterKey = `${q}|${cat}|${brand}|${sort}|${asc}`
+  const [prevFilterKey, setPrevFilterKey] = useState(filterKey)
+  if (prevFilterKey !== filterKey) {
+    setPrevFilterKey(filterKey)
+    setPage(1)
+  }
 
   const soldMap = useMemo(() => {
     const m = new Map<string, number>()

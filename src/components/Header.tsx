@@ -30,11 +30,19 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  useEffect(() => setMobileOpen(false), [loc.pathname, loc.search])
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
+
+  /* Close the drawer on navigation — done while rendering (React's
+     "adjust state when a prop changes" pattern) instead of in an effect. */
+  const routeKey = `${loc.pathname}${loc.search}`
+  const [prevRouteKey, setPrevRouteKey] = useState(routeKey)
+  if (prevRouteKey !== routeKey) {
+    setPrevRouteKey(routeKey)
+    setMobileOpen(false)
+  }
 
   /* Escape closes the drawer, like the cart drawer already does. */
   useEffect(() => {

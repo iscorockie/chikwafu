@@ -52,15 +52,25 @@ function groupMessage(o: Order): string {
 }
 
 export default function OrderConfirmed() {
-  const [order, setOrder] = useState<Order | null>(null)
+  /* Seeded at first render (not in an effect): no flash of empty state, and
+     corrupt sessionStorage JSON falls back to null instead of throwing
+     unhandled inside an effect the way the old code could. */
+  const [order] = useState<Order | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('chikwafu-last-order')
+      return raw ? (JSON.parse(raw) as Order) : null
+    } catch {
+      return null
+    }
+  })
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    const raw = sessionStorage.getItem('chikwafu-last-order')
-    if (raw) setOrder(JSON.parse(raw))
   }, [])
 
-  const eta = new Date(Date.now() + 1000 * 60 * 60 * 26).toLocaleDateString('en-GB', {
+  /* Captured once at mount so render stays pure. */
+  const [now] = useState(() => Date.now())
+  const eta = new Date(now + 1000 * 60 * 60 * 26).toLocaleDateString('en-GB', {
     weekday: 'long', day: 'numeric', month: 'long',
   })
 
@@ -89,7 +99,7 @@ export default function OrderConfirmed() {
           transition={{ delay: 0.15, duration: 0.6 }}
           className="mt-7 font-display text-[clamp(2rem,4.6vw,3rem)] font-semibold leading-tight"
         >
-          Webale nnyo — your order is in.
+          Webale <span className="em">nnyo</span> — your order is in.
         </motion.h1>
         <motion.p
           initial={{ opacity: 0, y: 14 }}
