@@ -63,7 +63,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5">
           {off > 0 && (
             <span className="rounded-full bg-accent px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-bg shadow-sm">
-              −{off}%
+              {off}% OFF
             </span>
           )}
           {product.express && <ExpressBadge size="sm" />}
@@ -115,10 +115,16 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
       </div>
 
       <div className="flex flex-1 flex-col px-1 pt-4">
-        <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-text-dim">
-          <span>{product.brand}</span>
-          <span className="h-1 w-1 rounded-full bg-white/25" />
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] uppercase tracking-[0.16em] text-text-dim">
           <span>{product.category}</span>
+          <span className="h-1 w-1 rounded-full bg-white/25" />
+          <span className="truncate">{product.brand}</span>
+          {product.capacity && (
+            <>
+              <span className="h-1 w-1 rounded-full bg-white/25" />
+              <span className="text-text-muted">{product.capacity}</span>
+            </>
+          )}
         </div>
         <h3 className="mt-1.5 font-display text-[17px] font-semibold leading-snug text-text">
           <Link to={`/product/${product.slug}`} className="transition hover:text-accent">
@@ -128,10 +134,9 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
         <p className="mt-1 line-clamp-1 text-[13px] text-text-muted">{product.tagline}</p>
 
         <div className="mt-2 flex items-center gap-2">
-          <Stars rating={product.rating} size={13} />
-          <span className="text-[12px] text-text-dim">
-            {product.rating.toFixed(1)} ({product.reviewCount})
-          </span>
+          <span className="text-[12px] font-black tabular-nums text-text">{product.rating.toFixed(1)}</span>
+          <Stars rating={product.rating} size={12} />
+          <span className="text-[11.5px] text-text-dim">({product.reviewCount})</span>
         </div>
 
         <div className="mt-auto flex items-baseline gap-2 pt-3">

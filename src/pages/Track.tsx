@@ -96,7 +96,7 @@ export default function Track() {
       <div className="mt-7 max-w-2xl">
         <p className="eyebrow">Where is my stuff?</p>
         <h1 className="mt-2.5 font-display text-[clamp(2rem,4.6vw,3.2rem)] font-semibold leading-tight">
-          Track your order
+          Track your <span className="em">order</span>
         </h1>
         <p className="mt-3 text-[14.5px] leading-relaxed text-text-muted">
           Enter the reference from your confirmation (for example{' '}

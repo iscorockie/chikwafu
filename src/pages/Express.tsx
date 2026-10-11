@@ -74,7 +74,7 @@ export default function Express() {
             transition={{ duration: 0.7, delay: 0.08, ease }}
             className="mt-6 max-w-3xl font-display text-[clamp(2.4rem,6vw,4.2rem)] font-black leading-[1.02] tracking-[-0.03em]"
           >
-            Chikwafu <span className="text-accent">Express</span>
+            Chikwafu <span className="em">Express</span>
           </motion.h1>
 
           <motion.p
@@ -108,7 +108,7 @@ export default function Express() {
       <section className="container-x py-16 lg:py-20">
         <p className="eyebrow">Delivery times</p>
         <h2 className="mt-2.5 font-display text-[clamp(1.8rem,3.6vw,2.6rem)] font-black leading-tight">
-          Chikwafu Express offers you
+          Chikwafu <span className="em">Express</span> offers you
         </h2>
 
         <div className="mt-9 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -168,7 +168,7 @@ export default function Express() {
         <div className="container-x">
           <p className="eyebrow">Categories</p>
           <h2 className="mt-2.5 font-display text-[clamp(1.6rem,3vw,2.2rem)] font-black">
-            Express is available across
+            <span className="em">Express</span> is available across
           </h2>
           <div className="mt-7 flex flex-wrap gap-2.5">
             {byCategory.map(({ category, count }) => (
@@ -228,7 +228,7 @@ export default function Express() {
         <div className="container-x">
           <p className="eyebrow">How it works</p>
           <h2 className="mt-2.5 font-display text-[clamp(1.6rem,3vw,2.2rem)] font-black">
-            Three steps, no surprises
+            Three steps, <span className="em">no surprises</span>
           </h2>
           <div className="mt-9 grid gap-5 md:grid-cols-3">
             {[
